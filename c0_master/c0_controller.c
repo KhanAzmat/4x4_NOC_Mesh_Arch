@@ -2,6 +2,7 @@
 #include <stdint.h>
 #include <stddef.h>
 #include <stdio.h>
+#include <stdarg.h>
 #include <pthread.h>
 #include <unistd.h>
 #include <string.h>
@@ -342,6 +343,37 @@ static task_t hal_task_storage[MAX_PENDING_TASKS];
 static int hal_task_storage_count = 0;
 static pthread_mutex_t hal_task_storage_lock = PTHREAD_MUTEX_INITIALIZER;
 
+// STEP 2: Atomic printing session lock for complete statement sequences
+static pthread_mutex_t print_session_lock = PTHREAD_MUTEX_INITIALIZER;
+
+// Function to begin atomic print session (blocks other threads from printing)
+void begin_print_session(int tile_id, const char* task_name) {
+    pthread_mutex_lock(&print_session_lock);
+    printf("=== [Tile %d] Starting %s - Print Session BEGIN ===\n", tile_id, task_name);
+    fflush(stdout);
+}
+
+// Function to end atomic print session (allows other threads to print)
+void end_print_session(int tile_id, const char* task_name, int result) {
+    printf("=== [Tile %d] %s Completed: %s - Print Session END ===\n\n", 
+           tile_id, task_name, result ? "PASS" : "FAIL");
+    fflush(stdout);
+    pthread_mutex_unlock(&print_session_lock);
+}
+
+// Main thread safe printing - respects ongoing print sessions
+void main_thread_print(const char* format, ...) {
+    pthread_mutex_lock(&print_session_lock);
+    
+    va_list args;
+    va_start(args, format);
+    vprintf(format, args);
+    va_end(args);
+    fflush(stdout);
+    
+    pthread_mutex_unlock(&print_session_lock);
+}
+
 task_t* create_hal_test_task(mesh_platform_t* p, 
                             int (*test_func)(void*),
                             const char* test_name,
@@ -491,8 +523,8 @@ void c0_run_hal_tests_distributed(mesh_platform_t* platform)
     printf("[C0 Master] - C0 Distribute: %s\n", c0_distribute_result ? "PASS" : "FAIL");
     printf("\n");
     
-    // STEP 2: Run HAL tests distributed across tile processors SEQUENTIALLY
-    printf("[C0 Master] Executing HAL tests sequentially across tile processors...\n");
+    // STEP 2: Run HAL tests distributed across tile processors IN PARALLEL
+    printf("[C0 Master] Executing HAL tests in parallel across tile processors...\n");
     
     // Test function table using wrapper functions (excluding C0 tests)
     struct {
@@ -516,55 +548,47 @@ void c0_run_hal_tests_distributed(mesh_platform_t* platform)
     memset(hal_task_storage, 0, sizeof(hal_task_storage));
     pthread_mutex_unlock(&hal_task_storage_lock);
     
-    // Execute HAL tests sequentially - one at a time
-    printf("[C0 Master] Executing %d HAL tests sequentially...\n", num_hal_tests);
+    // Reset completion counter for parallel execution
+    pthread_mutex_lock(&platform->platform_lock);
+    platform->completed_tasks = 0;
+    platform->active_tasks = 0;
+    pthread_mutex_unlock(&platform->platform_lock);
+    
+    // Create and queue ALL HAL test tasks for parallel execution
+    main_thread_print("[C0 Master] Creating %d HAL test tasks for parallel execution...\n", num_hal_tests);
     for (int i = 0; i < num_hal_tests; i++) {
-        printf("[C0 Master] --- Sequential Test %d/%d: %s ---\n", i+1, num_hal_tests, hal_tests[i].name);
-        
-        // Reset completion counter for this single task
-        pthread_mutex_lock(&platform->platform_lock);
-        platform->completed_tasks = 0;
-        platform->active_tasks = 0;
-        pthread_mutex_unlock(&platform->platform_lock);
-        
-        // Create and assign single task
         task_t* task = create_hal_test_task(platform, hal_tests[i].func, 
                                            hal_tests[i].name, &hal_tests[i].result);
         if (task) {
             queue_task_to_available_tile(platform, task);
-            
-            // Wait for this specific task to complete
-            printf("[C0 Master] Waiting for task %d (%s) to complete...\n", 
-                   task->task_id, hal_tests[i].name);
-            wait_for_all_tasks_completion(platform, 1); // Wait for 1 task only
-            
-            printf("[C0 Master] Task %d (%s) completed with result: %s\n", 
-                   task->task_id, hal_tests[i].name, hal_tests[i].result ? "PASS" : "FAIL");
         } else {
-            printf("[C0 Master] ERROR: Failed to create task for %s\n", hal_tests[i].name);
+            main_thread_print("[C0 Master] ERROR: Failed to create task for %s\n", hal_tests[i].name);
             hal_tests[i].result = 0;
         }
-        
-        printf("[C0 Master] --- Sequential Test %d/%d Complete ---\n\n", i+1, num_hal_tests);
     }
     
+    // Wait for ALL HAL tests to complete in parallel
+    main_thread_print("[C0 Master] Waiting for all %d HAL test tasks to complete in parallel...\n", num_hal_tests);
+    wait_for_all_tasks_completion(platform, num_hal_tests);
+    main_thread_print("[C0 Master] All parallel HAL test tasks completed!\n");
+    
     // Print results
-    printf("[C0 Master] === Test Results Summary ===\n");
-    printf("[C0 Master] C0 Master Tests (Main Thread):\n");
-    printf("[C0 Master] - C0 Gather: %s\n", c0_gather_result ? "PASS" : "FAIL");
-    printf("[C0 Master] - C0 Distribute: %s\n", c0_distribute_result ? "PASS" : "FAIL");
+    main_thread_print("[C0 Master] === Test Results Summary ===\n");
+    main_thread_print("[C0 Master] C0 Master Tests (Main Thread):\n");
+    main_thread_print("[C0 Master] - C0 Gather: %s\n", c0_gather_result ? "PASS" : "FAIL");
+    main_thread_print("[C0 Master] - C0 Distribute: %s\n", c0_distribute_result ? "PASS" : "FAIL");
     
     int hal_passed = 0;
-    printf("[C0 Master] HAL Tests (Sequential Distribution to Tile Processors):\n");
+    main_thread_print("[C0 Master] HAL Tests (Parallel Distribution to Tile Processors):\n");
     for (int i = 0; i < num_hal_tests; i++) {
         hal_passed += hal_tests[i].result;
-        printf("[C0 Master] - %s: %s\n", hal_tests[i].name, hal_tests[i].result ? "PASS" : "FAIL");
+        main_thread_print("[C0 Master] - %s: %s\n", hal_tests[i].name, hal_tests[i].result ? "PASS" : "FAIL");
     }
     
     int total_passed = c0_gather_result + c0_distribute_result + hal_passed;
     int total_tests = 2 + num_hal_tests;
-    printf("[C0 Master] Overall Summary: %d/%d tests passed\n", total_passed, total_tests);
-    printf("[C0 Master] === Test Execution Complete ===\n\n");
+    main_thread_print("[C0 Master] Overall Summary: %d/%d tests passed\n", total_passed, total_tests);
+    main_thread_print("[C0 Master] === Test Execution Complete ===\n\n");
 }
 
 // STEP 2: Tile task execution functions
@@ -596,12 +620,7 @@ task_t* tile_get_next_task(mesh_platform_t* p, tile_core_t* tile)
     
     pthread_mutex_unlock(&hal_task_storage_lock);
     
-    if (assigned_task) {
-        printf("[Tile %d] Retrieved assigned task %d (%s)\n", 
-               tile->id, assigned_task->task_id, 
-               assigned_task->type == TASK_TYPE_HAL_TEST ? assigned_task->params.hal_test.test_name : "other");
-    }
-    
+    // Don't print here - will be printed inside atomic session
     return assigned_task;
 }
 
@@ -610,8 +629,6 @@ int tile_execute_task(tile_core_t* tile, task_t* task)
     if (!tile || !task) {
         return -1;
     }
-    
-    printf("[Tile %d] Executing task %d (type %d)...\n", tile->id, task->task_id, task->type);
     
     // Update tile state
     pthread_mutex_lock(&tile->state_lock);
@@ -625,8 +642,15 @@ int tile_execute_task(tile_core_t* tile, task_t* task)
     
     switch (task->type) {
         case TASK_TYPE_HAL_TEST:
-            // Execute real HAL test function
+            // BEGIN ATOMIC PRINT SESSION - blocks other threads from printing
+            begin_print_session(tile->id, task->params.hal_test.test_name);
+            
+            // Execute real HAL test function within atomic print session
+            printf("[Tile %d] Retrieved assigned task %d (%s)\n", 
+                   tile->id, task->task_id, task->params.hal_test.test_name);
+            printf("[Tile %d] Executing task %d (type %d)...\n", tile->id, task->task_id, task->type);
             printf("[Tile %d] Executing HAL test: %s\n", tile->id, task->params.hal_test.test_name);
+            
             if (task->params.hal_test.test_func && task->params.hal_test.platform) {
                 // Call the HAL test function with platform parameter
                 result = task->params.hal_test.test_func(task->params.hal_test.platform);
@@ -638,10 +662,15 @@ int tile_execute_task(tile_core_t* tile, task_t* task)
                 
                 printf("[Tile %d] HAL test '%s' completed with result: %s\n", 
                        tile->id, task->params.hal_test.test_name, result ? "PASS" : "FAIL");
+                printf("[Tile %d] Task %d completed with result: %d\n", 
+                       tile->id, task->task_id, result);
             } else {
                 printf("[Tile %d] ERROR: Invalid HAL test parameters\n", tile->id);
                 result = 0;
             }
+            
+            // END ATOMIC PRINT SESSION - allows other threads to print
+            end_print_session(tile->id, task->params.hal_test.test_name, result);
             break;
             
         case TASK_TYPE_MEMORY_COPY:
@@ -688,9 +717,6 @@ int tile_execute_task(tile_core_t* tile, task_t* task)
     // Update task result
     task->result = result;
     
-    printf("[Tile %d] Task %d completed with result: %d\n", 
-           tile->id, task->task_id, result);
-    
     return result;
 }
 
@@ -719,8 +745,6 @@ int tile_complete_task(mesh_platform_t* p, tile_core_t* tile, task_t* task)
     p->active_tasks--;
     pthread_mutex_unlock(&p->platform_lock);
     
-    printf("[Tile %d] Completed task %d, total completed: %d\n", 
-           tile->id, task->task_id, tile->tasks_completed);
-    
+    // Don't print here - completion message is already inside atomic session
     return 0;
 }
