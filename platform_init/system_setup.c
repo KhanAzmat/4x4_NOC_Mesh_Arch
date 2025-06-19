@@ -1,5 +1,6 @@
 #include <stdlib.h>
 #include <string.h>
+#include <stdio.h>
 // #include "c0_master/c0_controller.h"
 #include "platform_init/system_setup.h"
 #include "platform_init/tile_init.h"
@@ -43,6 +44,15 @@ void platform_setup(mesh_platform_t* p)
         register_memory_region(p->nodes[i].dlm1_512_base_addr, 
                              p->nodes[i].dlm1_512_ptr, 
                              DLM1_512_SIZE);
+        
+        // STEP 1: Initialize tile threading structures
+        p->nodes[i].id = i;
+        p->nodes[i].x = (i % 4);
+        p->nodes[i].y = (i / 4) * 2; /* nodes on rows 0 and 2 */
+        
+        // Thread state will be initialized in platform_start_threads()
+        p->nodes[i].running = false;
+        p->nodes[i].initialized = false;
     }
 
     // Setup DMEMs with real addresses
@@ -65,8 +75,15 @@ void platform_setup(mesh_platform_t* p)
                              DMEM_512_SIZE);
     }
 
+    // STEP 1: Initialize platform threading control (main thread = C0 master)
+    p->platform_running = false;
+
     // platform_init_tiles(p->nodes, p->node_count);
 
     hal_use_reference_impl();
     hal_set_platform(p);
+    
+    printf("[Platform Setup] Enhanced with threading support (Step 1)\n");
 }
+
+
