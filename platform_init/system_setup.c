@@ -53,6 +53,13 @@ void platform_setup(mesh_platform_t* p)
         // Thread state will be initialized in platform_start_threads()
         p->nodes[i].running = false;
         p->nodes[i].initialized = false;
+        
+        // STEP 2: Initialize task execution state
+        p->nodes[i].current_task = NULL;
+        p->nodes[i].task_pending = false;
+        p->nodes[i].idle = true;
+        p->nodes[i].tasks_completed = 0;
+        p->nodes[i].total_execution_time = 0;
     }
 
     // Setup DMEMs with real addresses
@@ -77,13 +84,18 @@ void platform_setup(mesh_platform_t* p)
 
     // STEP 1: Initialize platform threading control (main thread = C0 master)
     p->platform_running = false;
+    
+    // STEP 2: Initialize task coordination system
+    p->next_task_id = 1;
+    p->active_tasks = 0;
+    p->completed_tasks = 0;
 
     // platform_init_tiles(p->nodes, p->node_count);
 
     hal_use_reference_impl();
     hal_set_platform(p);
     
-    printf("[Platform Setup] Enhanced with threading support (Step 1)\n");
+    printf("[Platform Setup] Enhanced with threading and task system (Step 2)\n");
 }
 
 
