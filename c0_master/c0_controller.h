@@ -11,7 +11,8 @@ typedef enum {
     TASK_TYPE_DMA_TRANSFER, 
     TASK_TYPE_COMPUTATION,
     TASK_TYPE_NOC_TRANSFER,
-    TASK_TYPE_TEST_EXECUTION
+    TASK_TYPE_TEST_EXECUTION,
+    TASK_TYPE_HAL_TEST      // New: For HAL test execution
 } task_type_t;
 
 typedef struct {
@@ -33,6 +34,13 @@ typedef struct {
             int test_id;
             void* test_data;
         } test_exec;
+        
+        struct {
+            int (*test_func)(void*);  // HAL test function pointer
+            const char* test_name;    // Test name for logging
+            void* platform;           // Platform context
+            int* result_ptr;          // Pointer to store result
+        } hal_test;
     } params;
     
     // Synchronization
@@ -140,5 +148,14 @@ int c0_wait_for_completion(mesh_platform_t* p, int expected_tasks);
 task_t* tile_get_next_task(mesh_platform_t* p, tile_core_t* tile);
 int tile_execute_task(tile_core_t* tile, task_t* task);
 int tile_complete_task(mesh_platform_t* p, tile_core_t* tile, task_t* task);
+
+// STEP 2: HAL test task management functions
+task_t* create_hal_test_task(mesh_platform_t* p, 
+                            int (*test_func)(void*),
+                            const char* test_name,
+                            int* result_ptr);
+int queue_task_to_available_tile(mesh_platform_t* p, task_t* task);
+int wait_for_all_tasks_completion(mesh_platform_t* p, int expected_count);
+void c0_run_hal_tests_distributed(mesh_platform_t* platform);
 
 #endif
