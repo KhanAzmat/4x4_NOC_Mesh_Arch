@@ -11,6 +11,9 @@
 #include "c0_controller.h"
 #include "hal_tests/test_framework.h"
 #include "hal_tests/parallel_noc_tests.h"
+#include "mesh_noc/noc_packet.h"
+#include "mesh_noc/mesh_router.h"
+#include "generated/mem_map.h"
 
 // STEP 2: Global platform context for tile threads
 mesh_platform_t* g_platform_context = NULL;
@@ -149,7 +152,7 @@ void* tile_processor_main(void* arg)
 {
     tile_core_t* tile = (tile_core_t*)arg;
     
-    printf("[Tile %d] Starting processor thread...\n", tile->id);
+    printf("[Tile %d] Starting processor thread with interrupt capabilities...\n", tile->id);
     
     // Initialize tile state
     pthread_mutex_lock(&tile->state_lock);
@@ -159,6 +162,10 @@ void* tile_processor_main(void* arg)
     tile->task_pending = false;
     tile->current_task = NULL;
     tile->initialized = true;  // Signal that initialization is complete
+    
+    // NEW: Initialize interrupt tracking
+    tile->interrupts_sent = 0;
+    tile->last_interrupt_timestamp = 0;
     pthread_mutex_unlock(&tile->state_lock);
     
     // Update tile statistics with thread ID when thread starts
@@ -171,7 +178,7 @@ void* tile_processor_main(void* arg)
     clock_gettime(CLOCK_MONOTONIC, &tile_stats[tile->id].last_execution_time);
     pthread_mutex_unlock(&stats_lock);
     
-
+    printf("[Tile %d] Processor thread initialized with interrupt support\n", tile->id);
     
     // Tile processor main loop - can execute multiple tasks, but prevents duplicates
     while (true) {
@@ -179,8 +186,20 @@ void* tile_processor_main(void* arg)
         task_t* task = tile_get_next_task(g_platform_context, tile);
         
         if (task) {
+            printf("[Tile %d] Starting task %d execution\n", tile->id, task->task_id);
+            
             // Execute the task
             int result = tile_execute_task(tile, task);
+            
+            // NEW: Send task completion interrupt to C0 before completing task
+            if (g_platform_context && g_platform_context->interrupt_processing_enabled) {
+                int irq_result = tile_signal_task_complete(g_platform_context, tile->id, task->task_id);
+                if (irq_result == 0) {
+                    printf("[Tile %d] Sent task completion interrupt for task %d\n", tile->id, task->task_id);
+                } else {
+                    printf("[Tile %d] Failed to send task completion interrupt for task %d\n", tile->id, task->task_id);
+                }
+            }
             
             // Complete the task
             tile_complete_task(g_platform_context, tile, task);
@@ -192,6 +211,8 @@ void* tile_processor_main(void* arg)
             tile->current_task = NULL;
             tile->task_pending = false;
             pthread_mutex_unlock(&tile->state_lock);
+            
+            printf("[Tile %d] Completed task %d (result=%d)\n", tile->id, task->task_id, result);
         } else {
             // No task available, stay idle
             pthread_mutex_lock(&tile->state_lock);
@@ -209,7 +230,12 @@ void* tile_processor_main(void* arg)
         if (!should_run) break;
     }
     
-    printf("[Tile %d] Processor thread stopping...\n", tile->id);
+    // NEW: Send shutdown notification to C0
+    if (g_platform_context && g_platform_context->interrupt_processing_enabled) {
+        tile_send_interrupt_to_c0(g_platform_context, tile->id, IRQ_TYPE_SHUTDOWN, 0, "Tile processor shutting down");
+    }
+    
+    printf("[Tile %d] Processor thread stopping (sent %lu interrupts)...\n", tile->id, tile->interrupts_sent);
     return NULL;
 }
 
@@ -305,16 +331,23 @@ int platform_stop_tile_threads(mesh_platform_t* p)
 // STEP 1: C0 master supervision function (executed by main thread)
 void c0_master_supervise_tiles(mesh_platform_t* p)
 {
-    printf("[C0 Master] Supervising tile processors...\n");
+    printf("[C0 Master] Supervising tile processors with interrupt handling...\n");
     
     // Simple supervision - in later steps this will coordinate tasks
     int supervision_cycles = 0;
     
     while (p->platform_running && supervision_cycles < 5) {
+        // NEW: Process pending interrupts from tiles
+        int interrupts_processed = c0_process_pending_interrupts(p);
+        if (interrupts_processed > 0) {
+            printf("[C0 Master] Processed %d interrupts this cycle\n", interrupts_processed);
+        }
+        
         // Check tile status for processor tiles (1-7)
         int active_tiles = 0;
         int idle_tiles = 0;
         int total_completed_tasks = 0;
+        uint64_t total_interrupts_sent = 0;
         
         for (int i = 1; i < p->node_count; i++) {  // i = 1 to 7
             pthread_mutex_lock(&p->nodes[i].state_lock);
@@ -324,12 +357,21 @@ void c0_master_supervise_tiles(mesh_platform_t* p)
                     idle_tiles++;
                 }
                 total_completed_tasks += p->nodes[i].tasks_completed;
+                total_interrupts_sent += p->nodes[i].interrupts_sent;
             }
             pthread_mutex_unlock(&p->nodes[i].state_lock);
         }
         
-        printf("[C0 Master] Supervision cycle %d: %d processor tiles active, %d idle, %d total tasks completed\n", 
-               supervision_cycles + 1, active_tiles, idle_tiles, total_completed_tasks);
+        printf("[C0 Master] Supervision cycle %d: %d processor tiles active, %d idle, %d tasks completed, %lu interrupts sent\n", 
+               supervision_cycles + 1, active_tiles, idle_tiles, total_completed_tasks, total_interrupts_sent);
+        
+        // NEW: Print interrupt controller statistics
+        if (p->interrupt_processing_enabled) {
+            printf("[C0 Master] IRQ stats - Received: %lu, Processed: %lu, Dropped: %lu\n",
+                   p->interrupt_controller.interrupts_received,
+                   p->interrupt_controller.interrupts_processed,
+                   p->interrupt_controller.interrupts_dropped);
+        }
         
         usleep(200000); // 200ms supervision interval
         supervision_cycles++;
@@ -341,18 +383,62 @@ void c0_master_supervise_tiles(mesh_platform_t* p)
 // Enhanced test runner with main thread as C0 master
 void c0_run_test_suite(mesh_platform_t* platform)
 {
-    printf("\n== Mesh‑NoC HAL Validation (Step 2: Distributed HAL Tests) ==\n");
+    printf("\n== Mesh‑NoC HAL Validation with Integrated Interrupt System ==\n");
     
     // STEP 1: Start tile processor threads (main thread becomes C0 master)
     if (platform_start_tile_threads(platform) == 0) {
         printf("[C0 Master] Platform running with tile processors and task system!\n");
         
-        // C0 master supervises the platform
+        // NEW: Initialize interrupt system for entire test suite
+        printf("[C0 Master] Initializing interrupt system...\n");
+        if (c0_interrupt_controller_init(&platform->interrupt_controller) == 0) {
+            // Register default interrupt handlers
+            c0_register_interrupt_handler(platform, IRQ_TYPE_TASK_COMPLETE, default_task_complete_handler);
+            c0_register_interrupt_handler(platform, IRQ_TYPE_ERROR, default_error_handler);
+            c0_register_interrupt_handler(platform, IRQ_TYPE_DMA_COMPLETE, default_dma_complete_handler);
+            c0_register_interrupt_handler(platform, IRQ_TYPE_RESOURCE_REQUEST, default_resource_request_handler);
+            c0_register_interrupt_handler(platform, IRQ_TYPE_SHUTDOWN, default_shutdown_handler);
+            
+            // Enable interrupt processing for entire test suite
+            platform->interrupt_processing_enabled = true;
+            printf("[C0 Master] Interrupt system enabled - tiles can now send interrupts to C0\n");
+        } else {
+            printf("[C0 Master] WARNING: Failed to initialize interrupt system\n");
+        }
+        
+        // C0 master supervises the platform (with interrupts enabled)
         c0_master_supervise_tiles(platform);
         
-        // STEP 2: Run HAL tests distributed across tiles
+        // STEP 2: Run HAL tests distributed across tiles (with interrupts still enabled)
         printf("[C0 Master] Executing HAL tests distributed across tiles...\n");
         c0_run_hal_tests_distributed(platform);
+        
+        // NEW: Process any remaining interrupts after tests
+        if (platform->interrupt_processing_enabled) {
+            printf("[C0 Master] Processing final interrupts...\n");
+            int final_interrupts = c0_process_pending_interrupts(platform);
+            if (final_interrupts > 0) {
+                printf("[C0 Master] Processed %d final interrupts\n", final_interrupts);
+            }
+            
+            // Print final interrupt statistics
+            printf("\n=== FINAL INTERRUPT SYSTEM STATISTICS ===\n");
+            printf("C0 Interrupt Controller:\n");
+            printf("  - Total Interrupts Received: %lu\n", platform->interrupt_controller.interrupts_received);
+            printf("  - Total Interrupts Processed: %lu\n", platform->interrupt_controller.interrupts_processed);
+            printf("  - Total Interrupts Dropped: %lu\n", platform->interrupt_controller.interrupts_dropped);
+            
+            printf("\nTile Interrupt Statistics:\n");
+            for (int i = 1; i < platform->node_count; i++) {
+                printf("  - Tile %d: %lu interrupts sent\n", i, platform->nodes[i].interrupts_sent);
+            }
+            printf("=== END INTERRUPT STATISTICS ===\n\n");
+            
+            // Disable interrupt processing and cleanup
+            platform->interrupt_processing_enabled = false;
+            c0_interrupt_controller_destroy(&platform->interrupt_controller);
+            printf("[C0 Master] Interrupt system shutdown complete\n");
+        }
         
         // STEP 1: Stop tile processor threads
         platform_stop_tile_threads(platform);
@@ -580,10 +666,22 @@ int wait_for_all_tasks_completion(mesh_platform_t* p, int expected_count)
         return -1;
     }
     
-    printf("[C0 Master] Waiting for %d HAL test tasks to complete...\n", expected_count);
+    printf("[C0 Master] Waiting for %d HAL test tasks to complete (with interrupt processing)...\n", expected_count);
     
     int completed = 0;
+    int total_interrupts_processed = 0;
+    
     while (completed < expected_count) {
+        // Process any pending interrupts while waiting
+        if (p->interrupt_processing_enabled) {
+            int interrupts_this_cycle = c0_process_pending_interrupts(p);
+            total_interrupts_processed += interrupts_this_cycle;
+            
+            if (interrupts_this_cycle > 0) {
+                printf("[C0 Master] Processed %d interrupts while waiting for task completion\n", interrupts_this_cycle);
+            }
+        }
+        
         // Check completion status
         pthread_mutex_lock(&p->platform_lock);
         completed = p->completed_tasks;
@@ -595,6 +693,9 @@ int wait_for_all_tasks_completion(mesh_platform_t* p, int expected_count)
     }
     
     printf("[C0 Master] All %d HAL test tasks completed!\n", expected_count);
+    if (total_interrupts_processed > 0) {
+        printf("[C0 Master] Processed %d total interrupts during task execution\n", total_interrupts_processed);
+    }
     return 0;
 }
 
@@ -757,8 +858,6 @@ task_t* tile_get_next_task(mesh_platform_t* p, tile_core_t* tile)
             task->taken = true;  // Set taken flag
             task->assigned_tile = -999;  // Invalidate assignment to prevent re-retrieval
             assigned_task = task;
-            printf("[DEBUG] Tile %d retrieved task %d (%s) - PERMANENTLY marked as taken\n", 
-                   tile->id, task->task_id, task->params.hal_test.test_name);
             break;
         }
     }
@@ -794,11 +893,7 @@ int tile_execute_task(tile_core_t* tile, task_t* task)
             begin_print_session(tile->id, task->params.hal_test.test_name);
             
             // Execute real HAL test function within atomic print session
-            printf("[Tile %d] Retrieved assigned task %d (%s)\n", 
-                   tile->id, task->task_id, task->params.hal_test.test_name);
-            printf("[Tile %d] Executing task %d (type %d)...\n", tile->id, task->task_id, task->type);
             printf("[Tile %d] Executing HAL test: %s\n", tile->id, task->params.hal_test.test_name);
-            printf("[THREAD-VERIFY] Tile %d using Thread ID: %lu\n", tile->id, (unsigned long)pthread_self());
             
             if (task->params.hal_test.test_func && task->params.hal_test.platform) {
                 // Log HAL flow verification before calling test
@@ -811,13 +906,9 @@ int tile_execute_task(tile_core_t* tile, task_t* task)
                 
                 // Store result in the pointer location for main thread to read
                 if (task->params.hal_test.result_ptr) {
-                    printf("[DEBUG] Tile %d: Writing result %d to address %p\n", 
-                           tile->id, result, (void*)task->params.hal_test.result_ptr);
                     *(task->params.hal_test.result_ptr) = result;
-                    printf("[DEBUG] Tile %d: Verified write - value at address is now %d\n", 
-                           tile->id, *(task->params.hal_test.result_ptr));
                 } else {
-                    printf("[DEBUG] Tile %d: ERROR - result_ptr is NULL!\n", tile->id);
+                    printf("[Tile %d] ERROR - result_ptr is NULL!\n", tile->id);
                 }
                 
                 printf("[HAL-RESULT] Tile %d: HAL test '%s' returned result: %d\n", 
@@ -908,5 +999,276 @@ int tile_complete_task(mesh_platform_t* p, tile_core_t* tile, task_t* task)
     pthread_mutex_unlock(&p->platform_lock);
     
     // Don't print here - completion message is already inside atomic session
+    return 0;
+}
+
+// ============================================================================
+// NEW: INTERRUPT SYSTEM IMPLEMENTATION
+// ============================================================================
+
+// Initialize C0 interrupt controller
+int c0_interrupt_controller_init(c0_interrupt_controller_t* ctrl) {
+    if (!ctrl) return -1;
+    
+    memset(ctrl, 0, sizeof(*ctrl));
+    ctrl->head = 0;
+    ctrl->tail = 0;
+    ctrl->count = 0;
+    ctrl->processing_enabled = false;
+    
+    if (pthread_mutex_init(&ctrl->irq_lock, NULL) != 0) {
+        return -1;
+    }
+    
+    if (pthread_cond_init(&ctrl->irq_available, NULL) != 0) {
+        pthread_mutex_destroy(&ctrl->irq_lock);
+        return -1;
+    }
+    
+    printf("[C0-IRQ] Interrupt controller initialized\n");
+    return 0;
+}
+
+// Destroy C0 interrupt controller
+int c0_interrupt_controller_destroy(c0_interrupt_controller_t* ctrl) {
+    if (!ctrl) return -1;
+    
+    ctrl->processing_enabled = false;
+    
+    pthread_mutex_destroy(&ctrl->irq_lock);
+    pthread_cond_destroy(&ctrl->irq_available);
+    
+    printf("[C0-IRQ] Interrupt controller destroyed\n");
+    return 0;
+}
+
+// Process pending interrupts in C0 master
+int c0_process_pending_interrupts(mesh_platform_t* p) {
+    if (!p || !p->interrupt_processing_enabled) return 0;
+    
+    c0_interrupt_controller_t* ctrl = &p->interrupt_controller;
+    int processed = 0;
+    
+    pthread_mutex_lock(&ctrl->irq_lock);
+    
+    while (ctrl->count > 0) {
+        // Get interrupt from queue
+        interrupt_request_t* irq = &ctrl->irq_queue[ctrl->head];
+        ctrl->head = (ctrl->head + 1) % MAX_PENDING_IRQS;
+        ctrl->count--;
+        
+        pthread_mutex_unlock(&ctrl->irq_lock);
+        
+        // Process interrupt
+        printf("[C0-IRQ] Processing %s interrupt from tile %d (data=0x%x)\n",
+               get_irq_type_name(irq->type), irq->source_tile, irq->data);
+        
+        // Call appropriate handler
+        if (irq->type >= 1 && irq->type <= IRQ_TYPE_MAX && ctrl->isr_handlers[irq->type]) {
+            int result = ctrl->isr_handlers[irq->type](irq, p);
+            if (result == 0) {
+                ctrl->interrupts_processed++;
+            }
+        } else {
+            printf("[C0-IRQ] No handler for interrupt type %d\n", irq->type);
+        }
+        
+        processed++;
+        pthread_mutex_lock(&ctrl->irq_lock);
+    }
+    
+    pthread_mutex_unlock(&ctrl->irq_lock);
+    return processed;
+}
+
+// Register interrupt handler
+int c0_register_interrupt_handler(mesh_platform_t* p, interrupt_type_t type, interrupt_handler_t handler) {
+    if (!p || type < 1 || type > IRQ_TYPE_MAX) return -1;
+    
+    p->interrupt_controller.isr_handlers[type] = handler;
+    printf("[C0-IRQ] Registered handler for %s interrupts\n", get_irq_type_name(type));
+    return 0;
+}
+
+// Send interrupt from tile to C0 via NoC
+int tile_send_interrupt_to_c0(mesh_platform_t* p, int tile_id, interrupt_type_t type, 
+                              uint32_t data, const char* message) {
+    if (!p || tile_id < 1 || tile_id >= NUM_TILES) return -1;
+    
+    // Create interrupt request
+    interrupt_request_t irq;
+    memset(&irq, 0, sizeof(irq));
+    irq.source_tile = tile_id;
+    irq.type = type;
+    irq.priority = get_irq_priority(type);
+    irq.timestamp = get_current_timestamp_ns();
+    irq.data = data;
+    irq.valid = true;
+    
+    if (message) {
+        strncpy(irq.message, message, sizeof(irq.message) - 1);
+        irq.message[sizeof(irq.message) - 1] = '\0';
+    }
+    
+    // Send via NoC packet
+    int result = noc_send_interrupt_packet(tile_id, 0, &irq);
+    
+    if (result == 0) {
+        p->nodes[tile_id].interrupts_sent++;
+        p->nodes[tile_id].last_interrupt_timestamp = irq.timestamp;
+        printf("[TILE-%d] Sent %s interrupt to C0 via NoC\n", tile_id, get_irq_type_name(type));
+    } else {
+        printf("[TILE-%d] Failed to send interrupt to C0\n", tile_id);
+    }
+    
+    return result;
+}
+
+// Convenience functions for common interrupts
+int tile_signal_task_complete(mesh_platform_t* p, int tile_id, uint32_t task_id) {
+    char message[64];
+    snprintf(message, sizeof(message), "Task %u completed on tile %d", task_id, tile_id);
+    return tile_send_interrupt_to_c0(p, tile_id, IRQ_TYPE_TASK_COMPLETE, task_id, message);
+}
+
+int tile_signal_error(mesh_platform_t* p, int tile_id, uint32_t error_code, const char* error_msg) {
+    char message[64];
+    snprintf(message, sizeof(message), "Error %u: %s", error_code, error_msg ? error_msg : "Unknown error");
+    return tile_send_interrupt_to_c0(p, tile_id, IRQ_TYPE_ERROR, error_code, message);
+}
+
+int tile_signal_dma_complete(mesh_platform_t* p, int tile_id, uint32_t transfer_id) {
+    char message[64];
+    snprintf(message, sizeof(message), "DMA transfer %u completed", transfer_id);
+    return tile_send_interrupt_to_c0(p, tile_id, IRQ_TYPE_DMA_COMPLETE, transfer_id, message);
+}
+
+// NoC interrupt packet functions
+int noc_send_interrupt_packet(int src_tile, int dst_tile, interrupt_request_t* irq) {
+    if (!irq || src_tile < 0 || src_tile >= NUM_TILES || dst_tile < 0 || dst_tile >= NUM_TILES) {
+        return -1;
+    }
+    
+    // Convert to compact format for NoC transmission
+    compact_interrupt_packet_t compact_irq;
+    memset(&compact_irq, 0, sizeof(compact_irq));
+    
+    compact_irq.source_tile = (uint32_t)irq->source_tile;
+    compact_irq.type = (uint32_t)irq->type;
+    compact_irq.priority = (uint32_t)irq->priority;
+    compact_irq.timestamp = irq->timestamp;
+    compact_irq.data = irq->data;
+    compact_irq.valid = irq->valid ? 1 : 0;
+    
+    // Copy message with truncation if needed
+    strncpy(compact_irq.message, irq->message, sizeof(compact_irq.message) - 1);
+    compact_irq.message[sizeof(compact_irq.message) - 1] = '\0';
+    
+    // Create NoC packet
+    noc_packet_t pkt;
+    memset(&pkt, 0, sizeof(pkt));
+    
+    // Set header
+    pkt.hdr.src_x = src_tile % 4;
+    pkt.hdr.src_y = src_tile / 4;
+    pkt.hdr.dest_x = dst_tile % 4;
+    pkt.hdr.dest_y = dst_tile / 4;
+    pkt.hdr.type = PKT_INTERRUPT_REQ;
+    pkt.hdr.length = sizeof(compact_interrupt_packet_t);
+    pkt.hdr.hop_count = 0;
+    
+    // Copy compact interrupt data to payload
+    if (sizeof(compact_interrupt_packet_t) <= sizeof(pkt.payload)) {
+        memcpy(pkt.payload, &compact_irq, sizeof(compact_interrupt_packet_t));
+        printf("[NOC-IRQ-SEND] Sending %s interrupt from tile %d to tile %d (%zu bytes)\n",
+               get_irq_type_name(irq->type), src_tile, dst_tile, sizeof(compact_interrupt_packet_t));
+    } else {
+        printf("[NOC-IRQ] Compact interrupt data too large for packet payload\n");
+        return -1;
+    }
+    
+    // Send via NoC router
+    return noc_send_packet(&pkt);
+}
+
+// Handle received interrupt from NoC
+int noc_handle_received_interrupt(mesh_platform_t* p, interrupt_request_t* irq) {
+    if (!p || !irq || !p->interrupt_processing_enabled) return -1;
+    
+    c0_interrupt_controller_t* ctrl = &p->interrupt_controller;
+    
+    pthread_mutex_lock(&ctrl->irq_lock);
+    
+    // Check if queue is full
+    if (ctrl->count >= MAX_PENDING_IRQS) {
+        ctrl->interrupts_dropped++;
+        pthread_mutex_unlock(&ctrl->irq_lock);
+        printf("[C0-IRQ] Interrupt queue full, dropping interrupt from tile %d\n", irq->source_tile);
+        return -1;
+    }
+    
+    // Add to queue
+    memcpy(&ctrl->irq_queue[ctrl->tail], irq, sizeof(interrupt_request_t));
+    ctrl->tail = (ctrl->tail + 1) % MAX_PENDING_IRQS;
+    ctrl->count++;
+    ctrl->interrupts_received++;
+    
+    printf("[C0-IRQ] Queued %s interrupt from tile %d (queue: %d/%d)\n",
+           get_irq_type_name(irq->type), irq->source_tile, ctrl->count, MAX_PENDING_IRQS);
+    
+    // Signal interrupt available
+    pthread_cond_signal(&ctrl->irq_available);
+    pthread_mutex_unlock(&ctrl->irq_lock);
+    
+    return 0;
+}
+
+// Default interrupt handlers
+int default_task_complete_handler(interrupt_request_t* irq, void* platform_context) {
+    mesh_platform_t* p = (mesh_platform_t*)platform_context;
+    
+    printf("[C0-IRQ-HANDLER] Task %u completed on tile %d: %s\n",
+           irq->data, irq->source_tile, irq->message);
+    
+    // Update platform task counters
+    pthread_mutex_lock(&p->platform_lock);
+    p->completed_tasks++;
+    if (p->active_tasks > 0) {
+        p->active_tasks--;
+    }
+    pthread_mutex_unlock(&p->platform_lock);
+    
+    return 0;
+}
+
+int default_error_handler(interrupt_request_t* irq, void* platform_context) {
+    printf("[C0-IRQ-HANDLER] ERROR on tile %d (code=0x%x): %s\n",
+           irq->source_tile, irq->data, irq->message);
+    
+    // Could trigger error recovery or tile restart
+    return 0;
+}
+
+int default_dma_complete_handler(interrupt_request_t* irq, void* platform_context) {
+    printf("[C0-IRQ-HANDLER] DMA transfer %u completed on tile %d: %s\n",
+           irq->data, irq->source_tile, irq->message);
+    return 0;
+}
+
+int default_resource_request_handler(interrupt_request_t* irq, void* platform_context) {
+    printf("[C0-IRQ-HANDLER] Resource request %u from tile %d: %s\n",
+           irq->data, irq->source_tile, irq->message);
+    
+    // Could implement resource allocation logic here
+    return 0;
+}
+
+int default_shutdown_handler(interrupt_request_t* irq, void* platform_context) {
+    mesh_platform_t* p = (mesh_platform_t*)platform_context;
+    
+    printf("[C0-IRQ-HANDLER] Shutdown request from tile %d: %s\n",
+           irq->source_tile, irq->message);
+    
+    // Could trigger graceful tile shutdown
     return 0;
 }

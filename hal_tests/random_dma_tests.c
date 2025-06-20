@@ -82,11 +82,18 @@ int test_random_dma_remote(mesh_platform_t *p)
         int src = cases[i].src_node;
         int dst = cases[i].dst_dmem;
         
-        // Use addresses from memory map
-        uint64_t src_addr = TILE0_BASE + src * TILE_STRIDE + DLM1_512_OFFSET;
-        uint64_t dst_addr = (dst < 4) ? 
-            (DMEM0_512_BASE + dst * DMEM_STRIDE) : 
-            (DMEM4_512_BASE + (dst - 4) * DMEM_STRIDE);
+        // Use addresses from memory map with proper base symbols
+        uint64_t tile_bases[] = {
+            TILE0_DLM1_512_BASE, TILE1_DLM1_512_BASE, TILE2_DLM1_512_BASE, TILE3_DLM1_512_BASE,
+            TILE4_DLM1_512_BASE, TILE5_DLM1_512_BASE, TILE6_DLM1_512_BASE, TILE7_DLM1_512_BASE
+        };
+        uint64_t dmem_bases[] = {
+            DMEM0_512_BASE, DMEM1_512_BASE, DMEM2_512_BASE, DMEM3_512_BASE,
+            DMEM4_512_BASE, DMEM5_512_BASE, DMEM6_512_BASE, DMEM7_512_BASE
+        };
+        
+        uint64_t src_addr = tile_bases[src];
+        uint64_t dst_addr = dmem_bases[dst];
         
         // Setup test data via platform structure
         uint8_t *src_ptr = p->nodes[src].dlm1_512_ptr;

@@ -40,16 +40,21 @@ static void thread_safe_banner(const char *msg)
 // Helper function for tile-to-C0 transfer task
 int tile_to_c0_transfer_task(void* platform_ptr)
 {
+    // Auto-detect tile ID from thread local storage
     mesh_platform_t* p = (mesh_platform_t*)platform_ptr;
+    if (!p) {
+        printf("[ERROR] Platform pointer is NULL\n");
+        return 0;
+    }
     
-    thread_safe_printf("[DEBUG] tile_to_c0_transfer_task CALLED! platform_ptr=%p\n", platform_ptr);
+    // Determine which tile this thread belongs to
+    pthread_t current_thread = pthread_self();
     
     // Get the current executing tile ID from the platform context
     // This will be the tile that this task was assigned to
     int current_tile_id = -1;
     
     // Find which tile is executing this task by checking thread IDs
-    pthread_t current_thread = pthread_self();
     for (int i = 1; i < p->node_count; i++) {
         if (pthread_equal(p->nodes[i].thread_id, current_thread)) {
             current_tile_id = i;

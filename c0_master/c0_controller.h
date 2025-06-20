@@ -4,6 +4,121 @@
 #include <stdint.h>
 #include <pthread.h>
 #include <stdbool.h>
+#include <time.h>
+
+// ============================================================================
+// INTERRUPT SYSTEM INTEGRATION
+// ============================================================================
+
+// Interrupt types - integrated into platform
+typedef enum {
+    IRQ_TYPE_TASK_COMPLETE = 1,    // Tile finished task
+    IRQ_TYPE_ERROR = 2,            // Tile encountered error  
+    IRQ_TYPE_DMA_COMPLETE = 3,     // DMA transfer finished
+    IRQ_TYPE_NOC_CONGESTION = 4,   // NoC traffic congestion
+    IRQ_TYPE_RESOURCE_REQUEST = 5,  // Tile needs resource
+    IRQ_TYPE_CUSTOM = 6,           // Custom application IRQ
+    IRQ_TYPE_TIMER = 7,            // Timer expiration
+    IRQ_TYPE_SHUTDOWN = 8,         // Tile requesting shutdown
+    IRQ_TYPE_MAX = 8
+} interrupt_type_t;
+
+// Interrupt priority levels
+typedef enum {
+    IRQ_PRIORITY_CRITICAL = 0,     // Errors, shutdown
+    IRQ_PRIORITY_HIGH = 1,         // DMA complete, resource requests  
+    IRQ_PRIORITY_NORMAL = 2,       // Task complete
+    IRQ_PRIORITY_LOW = 3           // Congestion, timers
+} interrupt_priority_t;
+
+// Interrupt request structure
+typedef struct {
+    int source_tile;               // Which tile sent the IRQ (1-7, or 0 for C0)
+    interrupt_type_t type;         // Type of interrupt
+    interrupt_priority_t priority; // Priority level
+    uint64_t timestamp;            // When IRQ was generated (nanoseconds)
+    uint32_t data;                 // Additional IRQ data (task_id, error_code, etc.)
+    char message[64];              // Optional descriptive message
+    bool valid;                    // Flag to indicate if IRQ is valid
+} interrupt_request_t;
+
+// Compact interrupt packet for NoC transmission (fits in 64-byte payload)
+typedef struct __attribute__((packed)) {
+    uint32_t source_tile;          // 4 bytes
+    uint32_t type;                 // 4 bytes 
+    uint32_t priority;             // 4 bytes
+    uint64_t timestamp;            // 8 bytes
+    uint32_t data;                 // 4 bytes
+    uint32_t valid;                // 4 bytes 
+    char message[36];              // 36 bytes = 64 bytes total
+} compact_interrupt_packet_t;
+
+// Interrupt handler function pointer
+typedef int (*interrupt_handler_t)(interrupt_request_t* irq, void* platform_context);
+
+// C0 Master interrupt controller (use NUM_TILES for consistency)
+#define MAX_PENDING_IRQS 64
+typedef struct {
+    interrupt_request_t irq_queue[MAX_PENDING_IRQS];
+    int head, tail, count;
+    pthread_mutex_t irq_lock;
+    pthread_cond_t irq_available;
+    
+    // ISR handlers for different interrupt types
+    interrupt_handler_t isr_handlers[IRQ_TYPE_MAX + 1];
+    
+    // Statistics
+    uint64_t interrupts_received;
+    uint64_t interrupts_processed;
+    uint64_t interrupts_dropped;
+    
+    // Processing control
+    volatile bool processing_enabled;
+} c0_interrupt_controller_t;
+
+// Helper functions for interrupts
+static inline interrupt_priority_t get_irq_priority(interrupt_type_t type) {
+    switch (type) {
+        case IRQ_TYPE_ERROR:
+        case IRQ_TYPE_SHUTDOWN:
+            return IRQ_PRIORITY_CRITICAL;
+        case IRQ_TYPE_DMA_COMPLETE:
+        case IRQ_TYPE_RESOURCE_REQUEST:
+            return IRQ_PRIORITY_HIGH;
+        case IRQ_TYPE_TASK_COMPLETE:
+        case IRQ_TYPE_CUSTOM:
+            return IRQ_PRIORITY_NORMAL;
+        case IRQ_TYPE_NOC_CONGESTION:
+        case IRQ_TYPE_TIMER:
+            return IRQ_PRIORITY_LOW;
+        default:
+            return IRQ_PRIORITY_NORMAL;
+    }
+}
+
+static inline const char* get_irq_type_name(interrupt_type_t type) {
+    switch (type) {
+        case IRQ_TYPE_TASK_COMPLETE: return "TASK_COMPLETE";
+        case IRQ_TYPE_ERROR: return "ERROR";
+        case IRQ_TYPE_DMA_COMPLETE: return "DMA_COMPLETE";
+        case IRQ_TYPE_NOC_CONGESTION: return "NOC_CONGESTION";
+        case IRQ_TYPE_RESOURCE_REQUEST: return "RESOURCE_REQUEST";
+        case IRQ_TYPE_CUSTOM: return "CUSTOM";
+        case IRQ_TYPE_TIMER: return "TIMER";
+        case IRQ_TYPE_SHUTDOWN: return "SHUTDOWN";
+        default: return "UNKNOWN";
+    }
+}
+
+static inline uint64_t get_current_timestamp_ns(void) {
+    struct timespec ts;
+    clock_gettime(CLOCK_MONOTONIC, &ts);
+    return (uint64_t)ts.tv_sec * 1000000000ULL + (uint64_t)ts.tv_nsec;
+}
+
+// ============================================================================
+// TASK SYSTEM DEFINITIONS
+// ============================================================================
 
 // STEP 2: Task system definitions
 typedef enum {
@@ -90,6 +205,10 @@ typedef struct {
     int tasks_completed;
     uint64_t total_execution_time;
     
+    // NEW: Interrupt capabilities for tiles
+    uint64_t interrupts_sent;
+    uint64_t last_interrupt_timestamp;
+    
 } tile_core_t;
 
 typedef struct {
@@ -122,7 +241,15 @@ typedef struct {
     volatile int active_tasks;
     volatile int completed_tasks;
     
+    // NEW: Integrated interrupt system
+    c0_interrupt_controller_t interrupt_controller;
+    volatile bool interrupt_processing_enabled;
+    
 } mesh_platform_t;
+
+// ============================================================================
+// FUNCTION DECLARATIONS
+// ============================================================================
 
 // STEP 1: Thread management function declarations
 int platform_start_tile_threads(mesh_platform_t* p);
@@ -158,5 +285,33 @@ task_t* create_hal_test_task(mesh_platform_t* p,
 int queue_task_to_available_tile(mesh_platform_t* p, task_t* task);
 int wait_for_all_tasks_completion(mesh_platform_t* p, int expected_count);
 void c0_run_hal_tests_distributed(mesh_platform_t* platform);
+
+// ============================================================================
+// NEW: INTERRUPT SYSTEM FUNCTION DECLARATIONS
+// ============================================================================
+
+// C0 Master interrupt controller functions
+int c0_interrupt_controller_init(c0_interrupt_controller_t* ctrl);
+int c0_interrupt_controller_destroy(c0_interrupt_controller_t* ctrl);
+int c0_process_pending_interrupts(mesh_platform_t* p);
+int c0_register_interrupt_handler(mesh_platform_t* p, interrupt_type_t type, interrupt_handler_t handler);
+
+// Tile interrupt functions
+int tile_send_interrupt_to_c0(mesh_platform_t* p, int tile_id, interrupt_type_t type, 
+                              uint32_t data, const char* message);
+int tile_signal_task_complete(mesh_platform_t* p, int tile_id, uint32_t task_id);
+int tile_signal_error(mesh_platform_t* p, int tile_id, uint32_t error_code, const char* error_msg);
+int tile_signal_dma_complete(mesh_platform_t* p, int tile_id, uint32_t transfer_id);
+
+// NoC interrupt packet functions
+int noc_send_interrupt_packet(int src_tile, int dst_tile, interrupt_request_t* irq);
+int noc_handle_received_interrupt(mesh_platform_t* p, interrupt_request_t* irq);
+
+// Default interrupt handlers
+int default_task_complete_handler(interrupt_request_t* irq, void* platform_context);
+int default_error_handler(interrupt_request_t* irq, void* platform_context);
+int default_dma_complete_handler(interrupt_request_t* irq, void* platform_context);
+int default_resource_request_handler(interrupt_request_t* irq, void* platform_context);
+int default_shutdown_handler(interrupt_request_t* irq, void* platform_context);
 
 #endif

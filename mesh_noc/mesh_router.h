@@ -10,7 +10,7 @@ extern "C" {
 extern int noc_trace_enabled;
 
 /* Send a single 512‑bit flit/packet – blocking in reference model */
-void noc_send_packet(const noc_packet_t* pkt);
+int noc_send_packet(const noc_packet_t* pkt);
 
 /* Initialize NOC arbitration simulation */
 void noc_init_arbitration(void);
