@@ -9,16 +9,30 @@
 #include "mesh_noc/noc_packet.h"
 #include "dmem/dmem_controller.h"
 #include <pthread.h>
+#include <unistd.h>
 
 static mesh_platform_t* g_platform = NULL;
 
 // Thread safety for HAL interface
 static pthread_mutex_t hal_mutex = PTHREAD_MUTEX_INITIALIZER;
 
+// HAL Function Call Tracking
+void hal_function_entry(const char* hal_func, const char* caller_test) {
+    printf("[HAL-ENTRY] %s called by test '%s'\n", hal_func, caller_test);
+    fflush(stdout);
+}
+
+void hal_function_exit(const char* hal_func, int result) {
+    printf("[HAL-EXIT] %s completed with result: %d\n", hal_func, result);
+    fflush(stdout);
+}
+
 void hal_set_platform(mesh_platform_t* p) { g_platform = p; }
 
 static int ref_cpu_local_move(uint64_t src_addr, uint64_t dst_addr, size_t size)
 {
+    hal_function_entry("hal_cpu_local_move", "CPU Local Move Test");
+    
     pthread_mutex_lock(&hal_mutex);
     
     // HAL validates addresses and translates to memory access
@@ -27,41 +41,57 @@ static int ref_cpu_local_move(uint64_t src_addr, uint64_t dst_addr, size_t size)
     
     if (!src_ptr || !dst_ptr) {
         pthread_mutex_unlock(&hal_mutex);
+        hal_function_exit("hal_cpu_local_move", -1);
         return -1;
     }
     if (!validate_address(src_addr, size) || !validate_address(dst_addr, size)) {
         pthread_mutex_unlock(&hal_mutex);
+        hal_function_exit("hal_cpu_local_move", -1);
         return -1;
     }
+    
+    printf("[DRIVER-CALL] CPU Local Move → memory driver (memmove)\n");
+    fflush(stdout);
     
     // HAL could call driver here, or do direct memory access
     memmove(dst_ptr, src_ptr, size);
     
     pthread_mutex_unlock(&hal_mutex);
+    hal_function_exit("hal_cpu_local_move", 0);
     return 0;
 }
 
 static int ref_dma_local_transfer(int tile_id, uint64_t src_addr, uint64_t dst_addr, size_t size)
 {
+    hal_function_entry("hal_dma_local_transfer", "DMA Local Transfer Test");
+    
     pthread_mutex_lock(&hal_mutex);
+    
+    printf("[DRIVER-CALL] DMA Local Transfer → tile DMA driver\n");
+    fflush(stdout);
     
     // Call tile DMA driver
     int result = dma_local_transfer(tile_id, src_addr, dst_addr, size);
     
     pthread_mutex_unlock(&hal_mutex);
+    hal_function_exit("hal_dma_local_transfer", result);
     return result;
 }
 
 static int ref_dma_remote_transfer(uint64_t src_addr, uint64_t dst_addr, size_t size)
 {
+    hal_function_entry("hal_dma_remote_transfer", "DMA Remote Transfer Test");
+    
     pthread_mutex_lock(&hal_mutex);
     
     if (!g_platform) {
         pthread_mutex_unlock(&hal_mutex);
+        hal_function_exit("hal_dma_remote_transfer", -1);
         return -1;
     }
     if (!validate_address(src_addr, size) || !validate_address(dst_addr, size)) {
         pthread_mutex_unlock(&hal_mutex);
+        hal_function_exit("hal_dma_remote_transfer", -1);
         return -1;
     }
 
@@ -75,8 +105,12 @@ static int ref_dma_remote_transfer(uint64_t src_addr, uint64_t dst_addr, size_t 
     if (!((src_region == ADDR_TILE_DLM1_512 && dst_region == ADDR_DMEM_512) ||
           (src_region == ADDR_DMEM_512 && dst_region == ADDR_TILE_DLM1_512))) {
         pthread_mutex_unlock(&hal_mutex);
+        hal_function_exit("hal_dma_remote_transfer", -1);
         return -1;
     }
+    
+    printf("[DRIVER-CALL] DMA Remote Transfer → NoC packet driver\n");
+    fflush(stdout);
     
     // Create NoC packet with address information
     noc_packet_t pkt = {0};
@@ -101,6 +135,7 @@ static int ref_dma_remote_transfer(uint64_t src_addr, uint64_t dst_addr, size_t 
     noc_send_packet(&pkt);
     
     pthread_mutex_unlock(&hal_mutex);
+    hal_function_exit("hal_dma_remote_transfer", (int)size);
     return (int)size;
 
 }

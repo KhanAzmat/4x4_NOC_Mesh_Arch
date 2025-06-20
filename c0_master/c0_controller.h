@@ -20,6 +20,7 @@ typedef struct {
     task_type_t type;
     int assigned_tile;
     volatile bool completed;
+    volatile bool taken;  // Flag to prevent double execution
     int result;
     
     // Task parameters (union for different task types)

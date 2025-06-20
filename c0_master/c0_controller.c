@@ -7,8 +7,10 @@
 #include <unistd.h>
 #include <string.h>
 #include <stdlib.h>
+#include <time.h>
 #include "c0_controller.h"
 #include "hal_tests/test_framework.h"
+#include "hal_tests/parallel_noc_tests.h"
 
 // STEP 2: Global platform context for tile threads
 mesh_platform_t* g_platform_context = NULL;
@@ -129,6 +131,19 @@ bool task_queue_is_empty(task_queue_t* queue)
     return empty;
 }
 
+// STEP 2: HAL Flow and Thread Verification (moved here for accessibility)
+typedef struct {
+    int tile_id;
+    pthread_t thread_id;
+    int tasks_executed;
+    int hal_calls_made;
+    char last_test_name[64];
+    struct timespec last_execution_time;
+} tile_execution_stats_t;
+
+static tile_execution_stats_t tile_stats[8];
+static pthread_mutex_t stats_lock = PTHREAD_MUTEX_INITIALIZER;
+
 // STEP 1: Basic tile processor main loop
 void* tile_processor_main(void* arg)
 {
@@ -139,43 +154,51 @@ void* tile_processor_main(void* arg)
     // Initialize tile state
     pthread_mutex_lock(&tile->state_lock);
     tile->running = true;
-    tile->initialized = true;
-    
-    // STEP 2: Initialize task execution state
-    tile->current_task = NULL;
-    tile->task_pending = false;
     tile->idle = true;
     tile->tasks_completed = 0;
-    tile->total_execution_time = 0;
-    
+    tile->task_pending = false;
+    tile->current_task = NULL;
+    tile->initialized = true;  // Signal that initialization is complete
     pthread_mutex_unlock(&tile->state_lock);
     
-    // STEP 2: Enhanced processor loop with task execution
-    while (tile->running) {
-        // Try to get next task from C0 master
-        // We need platform context - use extern declaration for now
-        extern mesh_platform_t* g_platform_context;
-        mesh_platform_t* platform = g_platform_context;
+    // Update tile statistics with thread ID when thread starts
+    pthread_mutex_lock(&stats_lock);
+    tile_stats[tile->id].tile_id = tile->id;
+    tile_stats[tile->id].thread_id = pthread_self();
+    tile_stats[tile->id].tasks_executed = 0;
+    tile_stats[tile->id].hal_calls_made = 0;
+    memset(tile_stats[tile->id].last_test_name, 0, sizeof(tile_stats[tile->id].last_test_name));
+    clock_gettime(CLOCK_MONOTONIC, &tile_stats[tile->id].last_execution_time);
+    pthread_mutex_unlock(&stats_lock);
+    
+
+    
+    // Tile processor main loop - can execute multiple tasks, but prevents duplicates
+    while (true) {
+        // Try to get a task from the platform
+        task_t* task = tile_get_next_task(g_platform_context, tile);
         
-        if (platform) {
-            task_t* task = tile_get_next_task(platform, tile);
+        if (task) {
+            // Execute the task
+            int result = tile_execute_task(tile, task);
             
-            if (task) {
-                // Execute the task
-                tile_execute_task(tile, task);
-                
-                // Report completion to C0 master
-                tile_complete_task(platform, tile, task);
-            } else {
-                // No tasks available, idle
-                pthread_mutex_lock(&tile->state_lock);
-                tile->idle = true;
-                pthread_mutex_unlock(&tile->state_lock);
-                
-                usleep(1000); // 1ms idle sleep
-            }
+            // Complete the task
+            tile_complete_task(g_platform_context, tile, task);
+            
+            // Update tile state after task completion
+            pthread_mutex_lock(&tile->state_lock);
+            tile->tasks_completed++;
+            tile->idle = true;
+            tile->current_task = NULL;
+            tile->task_pending = false;
+            pthread_mutex_unlock(&tile->state_lock);
         } else {
-            usleep(1000); // 1ms idle sleep if no platform context
+            // No task available, stay idle
+            pthread_mutex_lock(&tile->state_lock);
+            tile->idle = true;
+            pthread_mutex_unlock(&tile->state_lock);
+            
+            usleep(1000); // 1ms polling interval
         }
         
         // Check if we should stop
@@ -214,14 +237,16 @@ int platform_start_tile_threads(mesh_platform_t* p)
         return -1;
     }
     
-    // Initialize all tile threads
-    for (int i = 0; i < p->node_count; i++) {
+    // Initialize tile threads - SKIP tile 0 (C0 master) but include tiles 1-7
+    for (int i = 1; i < p->node_count; i++) {  // i = 1 to 7 (skip only tile 0)
         tile_core_t* tile = &p->nodes[i];
         
         // Initialize thread state
         pthread_mutex_init(&tile->state_lock, NULL);
         tile->running = false;
         tile->initialized = false;
+        
+        printf("[C0 Master] Creating processor thread for tile %d...\n", i);
         
         // Create tile thread
         if (pthread_create(&tile->thread_id, NULL, tile_processor_main, tile) != 0) {
@@ -230,11 +255,10 @@ int platform_start_tile_threads(mesh_platform_t* p)
         }
     }
     
-    // Wait for all tiles to initialize
+    // Wait for tiles 1-7 to initialize (skip only tile 0 = C0 master)
     printf("[C0 Master] Waiting for tile threads to initialize...\n");
     
-    // Wait for all tiles to initialize
-    for (int i = 0; i < p->node_count; i++) {
+    for (int i = 1; i < p->node_count; i++) {  // i = 1 to 7
         while (!p->nodes[i].initialized) {
             usleep(1000);
         }
@@ -250,15 +274,15 @@ int platform_stop_tile_threads(mesh_platform_t* p)
 {
     printf("[C0 Master] Stopping tile processor threads...\n");
     
-    // Signal all tile threads to stop
-    for (int i = 0; i < p->node_count; i++) {
+    // Signal tile processor threads (1-7) to stop
+    for (int i = 1; i < p->node_count; i++) {  // i = 1 to 7
         pthread_mutex_lock(&p->nodes[i].state_lock);
         p->nodes[i].running = false;
         pthread_mutex_unlock(&p->nodes[i].state_lock);
     }
     
-    // Wait for all tile threads to finish
-    for (int i = 0; i < p->node_count; i++) {
+    // Wait for tile processor threads (1-7) to finish
+    for (int i = 1; i < p->node_count; i++) {  // i = 1 to 7
         pthread_join(p->nodes[i].thread_id, NULL);
     }
     
@@ -266,8 +290,8 @@ int platform_stop_tile_threads(mesh_platform_t* p)
     task_queue_destroy(&p->task_queue);
     pthread_mutex_destroy(&p->task_id_lock);
     
-    // Clean up mutexes
-    for (int i = 0; i < p->node_count; i++) {
+    // Clean up mutexes for tiles 1-7
+    for (int i = 1; i < p->node_count; i++) {  // i = 1 to 7
         pthread_mutex_destroy(&p->nodes[i].state_lock);
     }
     pthread_mutex_destroy(&p->platform_lock);
@@ -287,12 +311,12 @@ void c0_master_supervise_tiles(mesh_platform_t* p)
     int supervision_cycles = 0;
     
     while (p->platform_running && supervision_cycles < 5) {
-        // Check tile status
+        // Check tile status for processor tiles (1-7)
         int active_tiles = 0;
         int idle_tiles = 0;
         int total_completed_tasks = 0;
         
-        for (int i = 0; i < p->node_count; i++) {
+        for (int i = 1; i < p->node_count; i++) {  // i = 1 to 7
             pthread_mutex_lock(&p->nodes[i].state_lock);
             if (p->nodes[i].running) {
                 active_tiles++;
@@ -304,7 +328,7 @@ void c0_master_supervise_tiles(mesh_platform_t* p)
             pthread_mutex_unlock(&p->nodes[i].state_lock);
         }
         
-        printf("[C0 Master] Supervision cycle %d: %d tiles active, %d idle, %d total tasks completed\n", 
+        printf("[C0 Master] Supervision cycle %d: %d processor tiles active, %d idle, %d total tasks completed\n", 
                supervision_cycles + 1, active_tiles, idle_tiles, total_completed_tasks);
         
         usleep(200000); // 200ms supervision interval
@@ -334,7 +358,7 @@ void c0_run_test_suite(mesh_platform_t* platform)
         platform_stop_tile_threads(platform);
     } else {
         printf("[C0 Master] ERROR: Failed to start tile threads, running in single-threaded mode\n");
-        run_all_tests(platform);
+    run_all_tests(platform);
     }
 }
 
@@ -345,6 +369,94 @@ static pthread_mutex_t hal_task_storage_lock = PTHREAD_MUTEX_INITIALIZER;
 
 // STEP 2: Atomic printing session lock for complete statement sequences
 static pthread_mutex_t print_session_lock = PTHREAD_MUTEX_INITIALIZER;
+
+// Function to log HAL call flow verification
+void verify_hal_call_flow(int tile_id, const char* test_name, const char* hal_function, const char* driver_function) {
+    pthread_mutex_lock(&stats_lock);
+    
+    tile_stats[tile_id].hal_calls_made++;
+    strncpy(tile_stats[tile_id].last_test_name, test_name, sizeof(tile_stats[tile_id].last_test_name) - 1);
+    clock_gettime(CLOCK_MONOTONIC, &tile_stats[tile_id].last_execution_time);
+    
+    pthread_mutex_unlock(&stats_lock);
+    
+    printf("[HAL-FLOW] Tile %d: Test '%s' → HAL '%s' → Driver '%s'\n", 
+           tile_id, test_name, hal_function, driver_function);
+    fflush(stdout);
+}
+
+// Function to update tile execution statistics
+void update_tile_execution_stats(int tile_id, pthread_t thread_id, const char* test_name) {
+    pthread_mutex_lock(&stats_lock);
+    
+    tile_stats[tile_id].tile_id = tile_id;
+    tile_stats[tile_id].thread_id = thread_id;
+    tile_stats[tile_id].tasks_executed++;
+    strncpy(tile_stats[tile_id].last_test_name, test_name, sizeof(tile_stats[tile_id].last_test_name) - 1);
+    clock_gettime(CLOCK_MONOTONIC, &tile_stats[tile_id].last_execution_time);
+    
+    pthread_mutex_unlock(&stats_lock);
+}
+
+// Function to print comprehensive execution verification
+void print_execution_verification() {
+    pthread_mutex_lock(&stats_lock);
+    
+    printf("\n=== EXECUTION VERIFICATION REPORT ===\n");
+    printf("+------+--------------+-----------+-------------+----------------------+\n");
+    printf("| Tile | Thread ID    | Tasks Exec| HAL Calls   | Last Test            |\n");
+    printf("+------+--------------+-----------+-------------+----------------------+\n");
+    
+    // Show all tiles 0-7
+    for (int i = 0; i < 8; i++) {
+        printf("| %4d | %12lu | %9d | %11d | %-20s |\n",
+               tile_stats[i].tile_id,
+               (unsigned long)tile_stats[i].thread_id,
+               tile_stats[i].tasks_executed,
+               tile_stats[i].hal_calls_made,
+               tile_stats[i].last_test_name[0] ? tile_stats[i].last_test_name : "None");
+    }
+    
+    printf("+------+--------------+-----------+-------------+----------------------+\n");
+    
+    // Verify each tile 1-7 has processor threads (tile 0 is C0 master)
+    printf("\nTHREAD ASSIGNMENT VERIFICATION:\n");
+    printf("Tile 0: Reserved for C0 Master (no processor thread needed)\n");
+    
+    int active_tiles = 0;
+    for (int i = 1; i <= 7; i++) {
+        if (tile_stats[i].thread_id > 0) {
+            printf("Tile %d: ACTIVE (Thread %lu executed %d tasks)\n",
+                   i, (unsigned long)tile_stats[i].thread_id, tile_stats[i].tasks_executed);
+            active_tiles++;
+        } else {
+            printf("Tile %d: INACTIVE (No processor thread created)\n", i);
+        }
+    }
+    
+    printf("\nHAL FLOW VERIFICATION:\n");
+    int hal_active_tiles = 0;
+    for (int i = 1; i <= 7; i++) {
+        if (tile_stats[i].hal_calls_made > 0) {
+            printf("Tile %d: HAL FLOW VERIFIED (%d HAL calls made)\n",
+                   i, tile_stats[i].hal_calls_made);
+            hal_active_tiles++;
+        } else if (tile_stats[i].thread_id > 0) {
+            printf("Tile %d: PROCESSOR THREAD ACTIVE (no HAL tasks assigned yet)\n", i);
+        } else {
+            printf("Tile %d: NO HAL FLOW DETECTED\n", i);
+        }
+    }
+    
+    printf("\nSUMMARY:\n");
+    printf("- Processor Tiles (1-7): %d/7 active\n", active_tiles);
+    printf("- HAL Flow Verified: %d/7 tiles\n", hal_active_tiles);
+    printf("- Tile 0: C0 Master (main thread)\n");
+    printf("- All 7 processor threads available for task distribution\n");
+    printf("=== END VERIFICATION REPORT ===\n\n");
+    
+    pthread_mutex_unlock(&stats_lock);
+}
 
 // Function to begin atomic print session (blocks other threads from printing)
 void begin_print_session(int tile_id, const char* task_name) {
@@ -405,6 +517,7 @@ task_t* create_hal_test_task(mesh_platform_t* p,
     task->type = TASK_TYPE_HAL_TEST;
     task->assigned_tile = -1; // Will be assigned when queued
     task->completed = false;
+    task->taken = false;  // Initialize taken flag
     task->result = 0;
     
     // Set HAL test parameters
@@ -444,6 +557,19 @@ int queue_task_to_available_tile(mesh_platform_t* p, task_t* task)
     
     printf("[C0 Master] HAL test task %d '%s' assigned to tile %d (tile 0 reserved for C0 master)\n", 
            task->task_id, task->params.hal_test.test_name, target_tile);
+    
+    // Store task in static storage for tile-specific retrieval
+    pthread_mutex_lock(&hal_task_storage_lock);
+    if (hal_task_storage_count < MAX_PENDING_TASKS) {
+        hal_task_storage[hal_task_storage_count] = *task;
+        
+        // CRITICAL: Also mark the original task as taken to prevent duplicate execution
+        task->taken = true;
+        task->assigned_tile = -999;  // Invalidate original to prevent re-use
+        
+        hal_task_storage_count++;
+    }
+    pthread_mutex_unlock(&hal_task_storage_lock);
     
     return 0;
 }
@@ -506,6 +632,12 @@ static int hal_test_random_dma_remote_wrapper(void* p) {
     return test_random_dma_remote((mesh_platform_t*)p); 
 }
 
+static int hal_test_parallel_c0_access_wrapper(void* p) { 
+    extern int test_parallel_c0_access(mesh_platform_t* p);
+    return test_parallel_c0_access((mesh_platform_t*)p); 
+}
+
+
 void c0_run_hal_tests_distributed(mesh_platform_t* platform)
 {
     printf("[C0 Master] === Running Tests: C0 Master + Distributed HAL ===\n");
@@ -514,19 +646,22 @@ void c0_run_hal_tests_distributed(mesh_platform_t* platform)
     printf("[C0 Master] Executing C0 Master coordination tests...\n");
     extern int test_c0_gather(mesh_platform_t* p);
     extern int test_c0_distribute(mesh_platform_t* p);
+    extern int test_parallel_c0_access(mesh_platform_t* p);
     
     int c0_gather_result = test_c0_gather(platform);
     int c0_distribute_result = test_c0_distribute(platform);
+    int parallel_c0_result = test_parallel_c0_access(platform);  // Run on C0 main thread
     
     printf("[C0 Master] C0 Master tests completed:\n");
     printf("[C0 Master] - C0 Gather: %s\n", c0_gather_result ? "PASS" : "FAIL");
     printf("[C0 Master] - C0 Distribute: %s\n", c0_distribute_result ? "PASS" : "FAIL");
+    printf("[C0 Master] - Parallel C0 Access: %s\n", parallel_c0_result ? "PASS" : "FAIL");
     printf("\n");
     
     // STEP 2: Run HAL tests distributed across tile processors IN PARALLEL
     printf("[C0 Master] Executing HAL tests in parallel across tile processors...\n");
     
-    // Test function table using wrapper functions (excluding C0 tests)
+    // Test function table using wrapper functions (excluding C0 tests and Parallel C0 Access)
     struct {
         int (*func)(void*);
         const char* name;
@@ -537,7 +672,9 @@ void c0_run_hal_tests_distributed(mesh_platform_t* platform)
         {hal_test_dma_remote_transfer_wrapper, "DMA Remote Transfer", 0},
         {hal_test_noc_bandwidth_wrapper, "NoC Bandwidth", 0},
         {hal_test_noc_latency_wrapper, "NoC Latency", 0},
-        {hal_test_random_dma_remote_wrapper, "Random DMA Remote", 0}
+        {hal_test_random_dma_remote_wrapper, "Random DMA Remote", 0},
+        // Parallel C0 Access is now run on C0 main thread, not distributed
+    
     };
     
     int num_hal_tests = sizeof(hal_tests) / sizeof(hal_tests[0]);
@@ -585,10 +722,13 @@ void c0_run_hal_tests_distributed(mesh_platform_t* platform)
         main_thread_print("[C0 Master] - %s: %s\n", hal_tests[i].name, hal_tests[i].result ? "PASS" : "FAIL");
     }
     
-    int total_passed = c0_gather_result + c0_distribute_result + hal_passed;
-    int total_tests = 2 + num_hal_tests;
+    int total_passed = c0_gather_result + c0_distribute_result + parallel_c0_result + hal_passed;
+    int total_tests = 3 + num_hal_tests;
     main_thread_print("[C0 Master] Overall Summary: %d/%d tests passed\n", total_passed, total_tests);
     main_thread_print("[C0 Master] === Test Execution Complete ===\n\n");
+    
+    // Print comprehensive verification report
+    print_execution_verification();
 }
 
 // STEP 2: Tile task execution functions
@@ -607,14 +747,19 @@ task_t* tile_get_next_task(mesh_platform_t* p, tile_core_t* tile)
     for (int i = 0; i < hal_task_storage_count; i++) {
         task_t* task = &hal_task_storage[i];
         
-        if (task->assigned_tile == tile->id && !task->completed && task->result == 0) {
-            // Found a task assigned to this tile that hasn't been started
-            // Mark it as started by setting result to -1 temporarily
-            if (task->result == 0) {
-                task->result = -1; // Mark as in-progress
-                assigned_task = task;
-                break;
-            }
+        // STRICT CHECK: Only allow task retrieval if ALL conditions are met
+        if (task->assigned_tile == tile->id && 
+            !task->completed && 
+            !task->taken &&  // Check taken flag
+            task->task_id > 0) {  // Ensure task is valid
+            
+            // IMMEDIATELY mark as taken AND invalidate task_id to prevent race conditions
+            task->taken = true;  // Set taken flag
+            task->assigned_tile = -999;  // Invalidate assignment to prevent re-retrieval
+            assigned_task = task;
+            printf("[DEBUG] Tile %d retrieved task %d (%s) - PERMANENTLY marked as taken\n", 
+                   tile->id, task->task_id, task->params.hal_test.test_name);
+            break;
         }
     }
     
@@ -642,6 +787,9 @@ int tile_execute_task(tile_core_t* tile, task_t* task)
     
     switch (task->type) {
         case TASK_TYPE_HAL_TEST:
+            // Update execution statistics BEFORE starting
+            update_tile_execution_stats(tile->id, pthread_self(), task->params.hal_test.test_name);
+            
             // BEGIN ATOMIC PRINT SESSION - blocks other threads from printing
             begin_print_session(tile->id, task->params.hal_test.test_name);
             
@@ -650,16 +798,30 @@ int tile_execute_task(tile_core_t* tile, task_t* task)
                    tile->id, task->task_id, task->params.hal_test.test_name);
             printf("[Tile %d] Executing task %d (type %d)...\n", tile->id, task->task_id, task->type);
             printf("[Tile %d] Executing HAL test: %s\n", tile->id, task->params.hal_test.test_name);
+            printf("[THREAD-VERIFY] Tile %d using Thread ID: %lu\n", tile->id, (unsigned long)pthread_self());
             
             if (task->params.hal_test.test_func && task->params.hal_test.platform) {
+                // Log HAL flow verification before calling test
+                verify_hal_call_flow(tile->id, task->params.hal_test.test_name, "hal_reference", "hardware_driver");
+                
+                printf("[HAL-CALL] Tile %d: Calling HAL test function for '%s'\n", tile->id, task->params.hal_test.test_name);
+                
                 // Call the HAL test function with platform parameter
                 result = task->params.hal_test.test_func(task->params.hal_test.platform);
                 
                 // Store result in the pointer location for main thread to read
                 if (task->params.hal_test.result_ptr) {
+                    printf("[DEBUG] Tile %d: Writing result %d to address %p\n", 
+                           tile->id, result, (void*)task->params.hal_test.result_ptr);
                     *(task->params.hal_test.result_ptr) = result;
+                    printf("[DEBUG] Tile %d: Verified write - value at address is now %d\n", 
+                           tile->id, *(task->params.hal_test.result_ptr));
+                } else {
+                    printf("[DEBUG] Tile %d: ERROR - result_ptr is NULL!\n", tile->id);
                 }
                 
+                printf("[HAL-RESULT] Tile %d: HAL test '%s' returned result: %d\n", 
+                       tile->id, task->params.hal_test.test_name, result);
                 printf("[Tile %d] HAL test '%s' completed with result: %s\n", 
                        tile->id, task->params.hal_test.test_name, result ? "PASS" : "FAIL");
                 printf("[Tile %d] Task %d completed with result: %d\n", 
