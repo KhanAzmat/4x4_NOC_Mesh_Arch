@@ -383,14 +383,13 @@ void c0_master_supervise_tiles(mesh_platform_t* p)
 // Enhanced test runner with main thread as C0 master
 void c0_run_test_suite(mesh_platform_t* platform)
 {
-    printf("\n== Mesh‑NoC HAL Validation with Integrated Interrupt System ==\n");
+    printf("\n== Mesh‑NoC HAL Validation ==\n");
     
     // STEP 1: Start tile processor threads (main thread becomes C0 master)
     if (platform_start_tile_threads(platform) == 0) {
         printf("[C0 Master] Platform running with tile processors and task system!\n");
         
         // NEW: Initialize interrupt system for entire test suite
-        printf("[C0 Master] Initializing interrupt system...\n");
         if (c0_interrupt_controller_init(&platform->interrupt_controller) == 0) {
             // Register default interrupt handlers
             c0_register_interrupt_handler(platform, IRQ_TYPE_TASK_COMPLETE, default_task_complete_handler);
@@ -410,7 +409,7 @@ void c0_run_test_suite(mesh_platform_t* platform)
         c0_master_supervise_tiles(platform);
         
         // STEP 2: Run HAL tests distributed across tiles (with interrupts still enabled)
-        printf("[C0 Master] Executing HAL tests distributed across tiles...\n");
+        printf("[C0 Master] Executing HAL tests...\n");
         c0_run_hal_tests_distributed(platform);
         
         // NEW: Process any remaining interrupts after tests

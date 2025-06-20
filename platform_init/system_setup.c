@@ -95,7 +95,7 @@ void platform_setup(mesh_platform_t* p)
     hal_use_reference_impl();
     hal_set_platform(p);
     
-    printf("[Platform Setup] Enhanced with threading and task system (Step 2)\n");
+    printf("[Platform Setup] (Step 2)\n");
 }
 
 
