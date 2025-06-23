@@ -17,5 +17,5 @@ void run_all_tests(mesh_platform_t* platform)
     total++; passed += test_noc_bandwidth(platform);
     total++; passed += test_noc_latency(platform);
     total++; passed += test_random_dma_remote(platform);
-printf("\nSummary: %d/%d tests passed\n", passed, total);
+printf("\n\033[1mSummary: %d/%d tests passed\033[0m\n", passed, total);
 }

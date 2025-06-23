@@ -26,10 +26,25 @@ static void thread_safe_printf(const char* format, ...)
 static void thread_safe_banner(const char *msg)
 {
     pthread_mutex_lock(&print_mutex);
-    printf("================================\n");
-    printf("# %s\n", msg);
-    printf("================================\n");
+    
+    // Build entire banner in memory first
+    char complete_banner[1000];
+    int msg_len = strlen(msg);
+    int total_width = 82; // Inner width of the box
+    int padding = total_width - msg_len;
+    
+    snprintf(complete_banner, sizeof(complete_banner),
+        "\n"
+        "╔═══════════════════════════════════════════════════════════════════════════════════╗\n"
+        "║ \033[1;33m%s\033[0m%*s║\n"
+        "╚═══════════════════════════════════════════════════════════════════════════════════╝\n"
+        "\n",
+        msg, padding, "");
+    
+    // Single atomic write
+    fputs(complete_banner, stdout);
     fflush(stdout);
+    
     pthread_mutex_unlock(&print_mutex);
 }
 
@@ -93,9 +108,7 @@ int tile_to_c0_transfer_task(void* platform_ptr)
 
 int test_parallel_c0_access(mesh_platform_t* p)
 {
-    printf("================================\n");
-    printf("# Parallel C0 Access Test - C0 Main Thread Orchestrator\n");
-    printf("================================\n");
+    thread_safe_banner("Parallel C0 Access Test - C0 Main Thread Orchestrator");
     
     // Enable NOC tracing
     extern int noc_trace_enabled;

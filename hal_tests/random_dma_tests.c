@@ -13,10 +13,49 @@ static pthread_mutex_t print_mutex = PTHREAD_MUTEX_INITIALIZER;
 static void thread_safe_banner(const char *msg)
 {
     pthread_mutex_lock(&print_mutex);
-    printf("################################\n");
-    printf("# %s\n", msg);
-    printf("################################\n");
+    
+    // Build entire banner in memory first
+    char complete_banner[1000];
+    int msg_len = strlen(msg);
+    int total_width = 82; // Inner width of the box
+    int padding = total_width - msg_len;
+    
+    snprintf(complete_banner, sizeof(complete_banner),
+        "\n"
+        "╔═══════════════════════════════════════════════════════════════════════════════════╗\n"
+        "║ \033[1;35m%s\033[0m%*s║\n"
+        "╚═══════════════════════════════════════════════════════════════════════════════════╝\n"
+        "\n",
+        msg, padding, "");
+    
+    // Single atomic write
+    fputs(complete_banner, stdout);
     fflush(stdout);
+    
+    pthread_mutex_unlock(&print_mutex);
+}
+
+static void thread_safe_operation_banner(const char *msg)
+{
+    pthread_mutex_lock(&print_mutex);
+    
+    // Build entire banner in memory first
+    char complete_banner[1000];
+    int msg_len = strlen(msg);
+    int total_width = 84; // Inner width of the box
+    int padding = total_width - msg_len;
+    
+    snprintf(complete_banner, sizeof(complete_banner),
+        "\n"
+        "┌─────────────────────────────────────────────────────────────────────────────────────┐\n"
+        "│ \033[1;33m%s\033[0m%*s│\n"
+        "└─────────────────────────────────────────────────────────────────────────────────────┘\n",
+        msg, padding, "");
+    
+    // Single atomic write
+    fputs(complete_banner, stdout);
+    fflush(stdout);
+    
     pthread_mutex_unlock(&print_mutex);
 }
 
@@ -43,16 +82,31 @@ static void thread_safe_printf(const char* format, ...)
 
 static void banner(const char *msg)
 {
-    printf("################################\n");
-    printf("# %s\n", msg);
-    printf("################################\n");
+    printf("\n");
+    printf("╔═══════════════════════════════════════════════════════════════════════════════════╗\n");
+    printf("║ \033[1;35m%s\033[0m", msg);
+    // Calculate padding to center the text
+    int msg_len = strlen(msg);
+    int total_width = 82; // Inner width of the box
+    int padding = total_width - msg_len;
+    for (int i = 0; i < padding; i++) printf(" ");
+    printf("║\n");
+    printf("╚═══════════════════════════════════════════════════════════════════════════════════╝\n");
+    printf("\n");
 }
 
-static void dump32(const char *tag, const uint8_t *buf)
+static void operation_banner(const char *msg)
 {
-    printf("%s 0x", tag);
-    for (int i = 0; i < 32; ++i) printf("%02X", buf[i]);
-    printf(" ...\n");
+    printf("\n");
+    printf("┌─────────────────────────────────────────────────────────────────────────────────────┐\n");
+    printf("│ \033[1;33m%s\033[0m", msg);
+    // Calculate padding 
+    int msg_len = strlen(msg);
+    int total_width = 84; // Inner width of the box
+    int padding = total_width - msg_len;
+    for (int i = 0; i < padding; i++) printf(" ");
+    printf("│\n");
+    printf("└─────────────────────────────────────────────────────────────────────────────────────┘\n");
 }
 
 static void fill(uint8_t *buf, size_t len, uint8_t seed)
@@ -103,8 +157,11 @@ int test_random_dma_remote(mesh_platform_t *p)
         fill(src_ptr, BYTES, cases[i].seed);
         memset(dst_ptr, 0, BYTES);
 
-        thread_safe_printf("%d. HAL transfer: node_%d.dlm1(0x%lx) -> dmem_%d(0x%lx)\n", 
-               i + 1, src, src_addr, dst, dst_addr);
+        char operation_msg[200];
+        snprintf(operation_msg, sizeof(operation_msg), "%d. HAL transfer: node_%d.dlm1(0x%lx) -> dmem_%d(0x%lx)", 
+                 i + 1, src, src_addr, dst, dst_addr);
+        thread_safe_operation_banner(operation_msg);
+        
         thread_safe_dump32("[SRC-BEFORE]", src_ptr);
         thread_safe_dump32("[DST-BEFORE]", dst_ptr);
 
@@ -119,7 +176,7 @@ int test_random_dma_remote(mesh_platform_t *p)
         thread_safe_printf("HAL result: %d, Verify: %s\n\n", result, ok ? "PASS" : "FAIL");
     }
 
-    thread_safe_printf("[RndDMA] Summary: %d/2 passed\n", pass_cnt);
+    thread_safe_printf("\033[1m[RndDMA] Summary: %d/2 passed\033[0m\n", pass_cnt);
     return pass_cnt == 2;
 }
 

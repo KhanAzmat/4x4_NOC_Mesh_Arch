@@ -20,10 +20,25 @@ static void thread_safe_dump32(const char* tag, const uint8_t* buf){
 static void thread_safe_banner(const char *msg)
 {
     pthread_mutex_lock(&print_mutex);
-    printf("################################\n");
-    printf("# %s\n", msg);
-    printf("################################\n");
+    
+    // Build entire banner in memory first
+    char complete_banner[1000];
+    int msg_len = strlen(msg);
+    int total_width = 82; // Inner width of the box
+    int padding = total_width - msg_len;
+    
+    snprintf(complete_banner, sizeof(complete_banner),
+        "\n"
+        "╔═══════════════════════════════════════════════════════════════════════════════════╗\n"
+        "║ \033[1;32m%s\033[0m%*s║\n"
+        "╚═══════════════════════════════════════════════════════════════════════════════════╝\n"
+        "\n",
+        msg, padding, "");
+    
+    // Single atomic write
+    fputs(complete_banner, stdout);
     fflush(stdout);
+    
     pthread_mutex_unlock(&print_mutex);
 }
 
@@ -46,9 +61,17 @@ static void dump32(const char* tag, const uint8_t* buf){
 
 static void banner(const char *msg)
 {
-    printf("################################\n");
-    printf("# %s\n", msg);
-    printf("################################\n");
+    printf("\n");
+    printf("╔═══════════════════════════════════════════════════════════════════════════════════╗\n");
+    printf("║ \033[1;32m%s\033[0m", msg);
+    // Calculate padding to center the text
+    int msg_len = strlen(msg);
+    int total_width = 82; // Inner width of the box
+    int padding = total_width - msg_len;
+    for (int i = 0; i < padding; i++) printf(" ");
+    printf("║\n");
+    printf("╚═══════════════════════════════════════════════════════════════════════════════════╝\n");
+    printf("\n");
 }
 
 int test_cpu_local_move(mesh_platform_t* p){

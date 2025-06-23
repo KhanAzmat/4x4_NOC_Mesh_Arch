@@ -34,16 +34,26 @@ void platform_setup(mesh_platform_t* p)
     
     // Setup tiles with both addresses and simulated memory
     for (int i = 0; i < NUM_TILES; i++) {
-        // Address space (what HAL sees)
+        // 1. DLM_64 (32 KiB scratchpad memory)
+        p->nodes[i].dlm64_base_addr = TILE0_BASE + i * TILE_STRIDE + DLM_64_OFFSET;
+        p->nodes[i].dlm64_ptr = calloc(DLM_64_SIZE, 1);
+        register_memory_region(p->nodes[i].dlm64_base_addr, 
+                             p->nodes[i].dlm64_ptr, 
+                             DLM_64_SIZE);
+        
+        // 2. DLM1_512 (128 KiB buffer memory)
         p->nodes[i].dlm1_512_base_addr = TILE0_BASE + i * TILE_STRIDE + DLM1_512_OFFSET;
-        
-        // Simulated memory (what tests access)
         p->nodes[i].dlm1_512_ptr = calloc(DLM1_512_SIZE, 1);
-        
-        // Register memory with address manager
         register_memory_region(p->nodes[i].dlm1_512_base_addr, 
                              p->nodes[i].dlm1_512_ptr, 
                              DLM1_512_SIZE);
+        
+        // 3. DMA Registers (4 KiB control block)
+        p->nodes[i].dma_reg_base_addr = TILE0_BASE + i * TILE_STRIDE + DMA_REG_OFFSET;
+        p->nodes[i].dma_regs_ptr = calloc(0x1000, 1);  // 4 KiB for DMA registers
+        register_memory_region(p->nodes[i].dma_reg_base_addr, 
+                             p->nodes[i].dma_regs_ptr, 
+                             0x1000);
         
         // STEP 1: Initialize tile threading structures
         p->nodes[i].id = i;

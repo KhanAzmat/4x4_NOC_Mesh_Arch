@@ -152,7 +152,7 @@ void* tile_processor_main(void* arg)
 {
     tile_core_t* tile = (tile_core_t*)arg;
     
-    printf("[Tile %d] Starting processor thread with interrupt capabilities...\n", tile->id);
+    printf("[Tile %d] Starting processor thread ...\n", tile->id);
     
     // Initialize tile state
     pthread_mutex_lock(&tile->state_lock);
@@ -380,10 +380,93 @@ void c0_master_supervise_tiles(mesh_platform_t* p)
     printf("[C0 Master] Supervision complete\n");
 }
 
+// Function to print atomic banner for main validation header
+static void print_validation_banner(const char *msg)
+{
+    // Build entire banner in memory first
+    char complete_banner[1000];
+    int msg_len = strlen(msg);
+    int total_width = 82; // Inner width of the box
+    int padding = total_width - msg_len;
+    
+    snprintf(complete_banner, sizeof(complete_banner),
+        "\n"
+        "╔═══════════════════════════════════════════════════════════════════════════════════╗\n"
+        "║ \033[1;34m%s\033[0m%*s║\n"
+        "╚═══════════════════════════════════════════════════════════════════════════════════╝\n"
+        "\n",
+        msg, padding, "");
+    
+    // Single atomic write
+    fputs(complete_banner, stdout);
+    fflush(stdout);
+}
+
+// Function to print atomic banner for section headers
+static void print_section_banner(const char *msg)
+{
+    // Build entire banner in memory first
+    char complete_banner[1000];
+    int msg_len = strlen(msg);
+    int total_width = 82; // Inner width of the box
+    int padding = total_width - msg_len;
+    
+    snprintf(complete_banner, sizeof(complete_banner),
+        "\n"
+        "╔═══════════════════════════════════════════════════════════════════════════════════╗\n"
+        "║ \033[1;36m%s\033[0m%*s║\n"
+        "╚═══════════════════════════════════════════════════════════════════════════════════╝\n"
+        "\n",
+        msg, padding, "");
+    
+    // Single atomic write
+    fputs(complete_banner, stdout);
+    fflush(stdout);
+}
+
+// Function to print atomic banner for reports
+static void print_report_banner(const char *msg)
+{
+    // Build entire banner in memory first
+    char complete_banner[1000];
+    int msg_len = strlen(msg);
+    int total_width = 82; // Inner width of the box
+    int padding = total_width - msg_len;
+    
+    snprintf(complete_banner, sizeof(complete_banner),
+        "\n"
+        "╔═══════════════════════════════════════════════════════════════════════════════════╗\n"
+        "║ \033[1;35m%s\033[0m%*s║\n"
+        "╚═══════════════════════════════════════════════════════════════════════════════════╝\n",
+        msg, padding, "");
+    
+    // Single atomic write
+    fputs(complete_banner, stdout);
+    fflush(stdout);
+}
+
+// Function to print atomic end banner for reports
+static void print_end_banner(const char *msg)
+{
+    // Build entire banner in memory first
+    char complete_banner[1000];
+    int msg_len = strlen(msg);
+    int total_width = 82; // Inner width of the box
+    int padding = total_width - msg_len;
+    
+    snprintf(complete_banner, sizeof(complete_banner),
+        "╚═══════════════════════════════════════════════════════════════════════════════════╝\n"
+        "\n");
+    
+    // Single atomic write
+    fputs(complete_banner, stdout);
+    fflush(stdout);
+}
+
 // Enhanced test runner with main thread as C0 master
 void c0_run_test_suite(mesh_platform_t* platform)
 {
-    printf("\n== Mesh‑NoC HAL Validation ==\n");
+    print_validation_banner("Mesh‑NoC HAL Validation");
     
     // STEP 1: Start tile processor threads (main thread becomes C0 master)
     if (platform_start_tile_threads(platform) == 0) {
@@ -421,7 +504,7 @@ void c0_run_test_suite(mesh_platform_t* platform)
             }
             
             // Print final interrupt statistics
-            printf("\n=== FINAL INTERRUPT SYSTEM STATISTICS ===\n");
+            print_report_banner("FINAL INTERRUPT SYSTEM STATISTICS");
             printf("C0 Interrupt Controller:\n");
             printf("  - Total Interrupts Received: %lu\n", platform->interrupt_controller.interrupts_received);
             printf("  - Total Interrupts Processed: %lu\n", platform->interrupt_controller.interrupts_processed);
@@ -431,7 +514,7 @@ void c0_run_test_suite(mesh_platform_t* platform)
             for (int i = 1; i < platform->node_count; i++) {
                 printf("  - Tile %d: %lu interrupts sent\n", i, platform->nodes[i].interrupts_sent);
             }
-            printf("=== END INTERRUPT STATISTICS ===\n\n");
+            print_end_banner("END INTERRUPT STATISTICS");
             
             // Disable interrupt processing and cleanup
             platform->interrupt_processing_enabled = false;
@@ -487,7 +570,7 @@ void update_tile_execution_stats(int tile_id, pthread_t thread_id, const char* t
 void print_execution_verification() {
     pthread_mutex_lock(&stats_lock);
     
-    printf("\n=== EXECUTION VERIFICATION REPORT ===\n");
+    print_report_banner("EXECUTION VERIFICATION REPORT");
     printf("+------+--------------+-----------+-------------+----------------------+\n");
     printf("| Tile | Thread ID    | Tasks Exec| HAL Calls   | Last Test            |\n");
     printf("+------+--------------+-----------+-------------+----------------------+\n");
@@ -538,7 +621,7 @@ void print_execution_verification() {
     printf("- HAL Flow Verified: %d/7 tiles\n", hal_active_tiles);
     printf("- Tile 0: C0 Master (main thread)\n");
     printf("- All 7 processor threads available for task distribution\n");
-    printf("=== END VERIFICATION REPORT ===\n\n");
+    print_end_banner("END VERIFICATION REPORT");
     
     pthread_mutex_unlock(&stats_lock);
 }
@@ -546,14 +629,22 @@ void print_execution_verification() {
 // Function to begin atomic print session (blocks other threads from printing)
 void begin_print_session(int tile_id, const char* task_name) {
     pthread_mutex_lock(&print_session_lock);
-    printf("=== [Tile %d] Starting %s - Print Session BEGIN ===\n", tile_id, task_name);
+    // Build entire banner in memory first for atomic printing
+    char session_banner[1000];
+    snprintf(session_banner, sizeof(session_banner),
+        "=== [Tile %d] Starting %s - Print Session BEGIN ===\n", tile_id, task_name);
+    fputs(session_banner, stdout);
     fflush(stdout);
 }
 
 // Function to end atomic print session (allows other threads to print)
 void end_print_session(int tile_id, const char* task_name, int result) {
-    printf("=== [Tile %d] %s Completed: %s - Print Session END ===\n\n", 
-           tile_id, task_name, result ? "PASS" : "FAIL");
+    // Build entire banner in memory first for atomic printing
+    char end_banner[1000];
+    snprintf(end_banner, sizeof(end_banner),
+        "=== [Tile %d] %s Completed: %s - Print Session END ===\n\n", 
+        tile_id, task_name, result ? "PASS" : "FAIL");
+    fputs(end_banner, stdout);
     fflush(stdout);
     pthread_mutex_unlock(&print_session_lock);
 }
@@ -740,7 +831,7 @@ static int hal_test_parallel_c0_access_wrapper(void* p) {
 
 void c0_run_hal_tests_distributed(mesh_platform_t* platform)
 {
-    printf("[C0 Master] === Running Tests: C0 Master + Distributed HAL ===\n");
+    print_section_banner("Running Tests: C0 Master + Distributed HAL");
     
     // STEP 1: Run C0 Master tests on main thread (these are C0 coordination tasks)
     printf("[C0 Master] Executing C0 Master coordination tests...\n");
@@ -810,7 +901,8 @@ void c0_run_hal_tests_distributed(mesh_platform_t* platform)
     main_thread_print("[C0 Master] All parallel HAL test tasks completed!\n");
     
     // Print results
-    main_thread_print("[C0 Master] === Test Results Summary ===\n");
+    main_thread_print("\n");
+    print_section_banner("Test Results Summary");
     main_thread_print("[C0 Master] C0 Master Tests (Main Thread):\n");
     main_thread_print("[C0 Master] - C0 Gather: %s\n", c0_gather_result ? "PASS" : "FAIL");
     main_thread_print("[C0 Master] - C0 Distribute: %s\n", c0_distribute_result ? "PASS" : "FAIL");
@@ -824,8 +916,8 @@ void c0_run_hal_tests_distributed(mesh_platform_t* platform)
     
     int total_passed = c0_gather_result + c0_distribute_result + parallel_c0_result + hal_passed;
     int total_tests = 3 + num_hal_tests;
-    main_thread_print("[C0 Master] Overall Summary: %d/%d tests passed\n", total_passed, total_tests);
-    main_thread_print("[C0 Master] === Test Execution Complete ===\n\n");
+    main_thread_print("\033[1m[C0 Master] Overall Summary: %d/%d tests passed\033[0m\n", total_passed, total_tests);
+    print_section_banner("Test Execution Complete");
     
     // Print comprehensive verification report
     print_execution_verification();
@@ -927,35 +1019,35 @@ int tile_execute_task(tile_core_t* tile, task_t* task)
             
         case TASK_TYPE_MEMORY_COPY:
             // Simple memory operation simulation
-            printf("[Tile %d] Executing memory copy task...\n", tile->id);
+            printf("[Tile %d] [Placeholder] Executing memory copy task...\n", tile->id);
             usleep(5000); // 5ms simulated work
             result = 256; // Simulate 256 bytes copied
             break;
             
         case TASK_TYPE_DMA_TRANSFER:
             // DMA transfer simulation
-            printf("[Tile %d] Executing DMA transfer task...\n", tile->id);
+            printf("[Tile %d][Placeholder] Executing DMA transfer task...\n", tile->id);
             usleep(8000); // 8ms simulated work
             result = (int)task->params.memory_op.size;
             break;
             
         case TASK_TYPE_COMPUTATION:
             // Computation simulation
-            printf("[Tile %d] Executing computation task...\n", tile->id);
+            printf("[Tile %d][Placeholder]Executing computation task...\n", tile->id);
             usleep(15000); // 15ms simulated work
             result = 1; // Success
             break;
             
         case TASK_TYPE_NOC_TRANSFER:
             // NoC transfer simulation
-            printf("[Tile %d] Executing NoC transfer task...\n", tile->id);
+            printf("[Tile %d][Placeholder] Executing NoC transfer task...\n", tile->id);
             usleep(10000); // 10ms simulated work
             result = (int)task->params.memory_op.size;
             break;
             
         case TASK_TYPE_TEST_EXECUTION:
             // Test execution simulation
-            printf("[Tile %d] Executing test task %d...\n", tile->id, task->params.test_exec.test_id);
+            printf("[Tile %d][Placeholder] Executing test task %d...\n", tile->id, task->params.test_exec.test_id);
             usleep(12000); // 12ms simulated work
             result = 1; // Success
             break;

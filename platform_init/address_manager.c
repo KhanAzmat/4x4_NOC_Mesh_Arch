@@ -19,12 +19,30 @@ void address_manager_init(void* platform) {
 uint8_t* addr_to_ptr(uint64_t address) {
     if (!g_platform) return NULL;
 
+    // Check if it's a tile DLM_64 address
+    for (int tile = 0; tile < g_platform->node_count; tile++) {
+        uint64_t dlm64_base = g_platform->nodes[tile].dlm64_base_addr;
+        if (address >= dlm64_base && address < dlm64_base + DLM_64_SIZE) {
+            uint64_t offset = address - dlm64_base;
+            return g_platform->nodes[tile].dlm64_ptr + offset;
+        }
+    }
+
     // Check if it's a tile DLM1_512 address
     for (int tile = 0; tile < g_platform->node_count; tile++) {
         uint64_t tile_base = g_platform->nodes[tile].dlm1_512_base_addr;
         if (address >= tile_base && address < tile_base + DLM1_512_SIZE) {
             uint64_t offset = address - tile_base;
             return g_platform->nodes[tile].dlm1_512_ptr + offset;
+        }
+    }
+    
+    // Check if it's a tile DMA register address
+    for (int tile = 0; tile < g_platform->node_count; tile++) {
+        uint64_t dma_base = g_platform->nodes[tile].dma_reg_base_addr;
+        if (address >= dma_base && address < dma_base + 0x1000) {
+            uint64_t offset = address - dma_base;
+            return g_platform->nodes[tile].dma_regs_ptr + offset;
         }
     }
     
