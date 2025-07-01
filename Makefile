@@ -1,8 +1,13 @@
 CC      := gcc
 CFLAGS  := -std=c11 -Wall -Wextra -O2 -pthread -ldl -Itile -I. -Imesh_noc -Idmem -I..
 
-# Gather all C sources for the platform
-SRCS := $(shell find . -name '*.c')
+# Gather all C sources for the platform (excluding hal directory)
+SRCS := $(shell find . -name '*.c' -not -path './hal/*')
+
+# Add specific HAL sources we want to include
+SRCS += hal/dma512/hal_dmac512.c
+
+# Create object file list from all sources
 OBJS := $(SRCS:.c=.o)
 
 TARGET := soc_top

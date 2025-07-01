@@ -1,0 +1,285 @@
+Generate a comprehensive DMEM test suite that integrates seamlessly into the existing platform with zero additional work.
+
+PLATFORM INTEGRATION REQUIREMENTS
+
+1. Test Function Pattern:
+   int test_dmem_basic_functionality(mesh_platform_t* p) {
+       const size_t bytes = 256;
+       uint64_t src_addr = DMEM0_512_BASE;
+       uint64_t dst_addr = DMEM1_512_BASE;
+       thread_safe_banner("dmem_basic_functionality");
+       g_hal.memory_fill(src_addr, 0xAA, bytes);
+       g_hal.memory_set(dst_addr, 0, bytes);
+       int result = g_hal.dmem_to_dmem_transfer(src_addr, dst_addr, bytes);
+       uint8_t src_verify[bytes], dst_verify[bytes];
+       g_hal.memory_read(src_addr, src_verify, bytes);
+       g_hal.memory_read(dst_addr, dst_verify, bytes);
+       int ok = (memcmp(src_verify, dst_verify, bytes) == 0);
+       thread_safe_printf("[Test] DMEM Basic Functionality: %s\n", ok ? "PASS" : "FAIL");
+       return ok;
+   }
+
+2. Wrapper Function Pattern:
+   static int hal_test_dmem_basic_functionality_wrapper(void* p) { 
+       extern int test_dmem_basic_functionality(mesh_platform_t* p);
+       return test_dmem_basic_functionality((mesh_platform_t*)p);
+   }
+
+3. Array Entry Pattern:
+   {hal_test_dmem_basic_functionality_wrapper, "DMEM-Basic-Functionality", 0},
+
+DMEM SPECIFICATIONS
+
+Memory Configuration:
+#define NUM_DMEMS          8
+#define DMEM_512_SIZE      0x00040000UL
+
+DMEM Address Constants:
+#define DMEM0_512_BASE        0x10000000UL
+#define DMEM1_512_BASE        0x10400000UL
+#define DMEM2_512_BASE        0x10800000UL
+#define DMEM3_512_BASE        0x10C00000UL
+#define DMEM4_512_BASE        0x20000000UL
+#define DMEM5_512_BASE        0x20400000UL
+#define DMEM6_512_BASE        0x20800000UL
+#define DMEM7_512_BASE        0x20C00000UL
+
+HAL Interface Functions:
+g_hal.dmem_to_dmem_transfer(uint64_t src_addr, uint64_t dst_addr, size_t size);
+g_hal.get_dmem_status(uint64_t dmem_base_addr);
+g_hal.memory_read(uint64_t addr, uint8_t* buffer, size_t size);
+g_hal.memory_write(uint64_t addr, const uint8_t* buffer, size_t size);
+g_hal.memory_fill(uint64_t addr, uint8_t value, size_t size);
+g_hal.memory_set(uint64_t addr, uint8_t value, size_t size);
+
+THREAD-SAFE UTILITIES
+
+Include these exact static functions in dmem_tests.c:
+
+#include <stdio.h>
+#include <string.h>
+#include <pthread.h>
+#include <stdarg.h>
+
+static pthread_mutex_t print_mutex = PTHREAD_MUTEX_INITIALIZER;
+
+static void thread_safe_printf(const char* format, ...)
+{
+    pthread_mutex_lock(&print_mutex);
+    va_list args;
+    va_start(args, format);
+    vprintf(format, args);
+    va_end(args);
+    fflush(stdout);
+    pthread_mutex_unlock(&print_mutex);
+}
+
+static void thread_safe_banner(const char *msg)
+{
+    pthread_mutex_lock(&print_mutex);
+    
+    char complete_banner[1000];
+    int msg_len = strlen(msg);
+    int total_width = 82;
+    int padding = total_width - msg_len;
+    
+    snprintf(complete_banner, sizeof(complete_banner),
+        "\n"
+        "╔═══════════════════════════════════════════════════════════════════════════════════╗\n"
+        "║ \033[1;32m%s\033[0m%*s║\n"
+        "╚═══════════════════════════════════════════════════════════════════════════════════╝\n"
+        "\n",
+        msg, padding, "");
+    
+    fputs(complete_banner, stdout);
+    fflush(stdout);
+    pthread_mutex_unlock(&print_mutex);
+}
+
+static void thread_safe_dump32(const char* tag, const uint8_t* buf){
+    pthread_mutex_lock(&print_mutex);
+    printf("%s 0x", tag);
+    for(int i=0;i<32;i++) printf("%02X", buf[i]);
+    printf(" ...\n");
+    fflush(stdout);
+    pthread_mutex_unlock(&print_mutex);
+}
+
+REQUIRED TEST FUNCTIONS
+
+Generate exactly these 10 test functions:
+
+1. test_dmem_basic_functionality()
+   - Use g_hal.memory_fill(DMEM0_512_BASE, 0xAA, 256)
+   - Use g_hal.dmem_to_dmem_transfer(DMEM0_512_BASE, DMEM1_512_BASE, 256)
+   - Verify with g_hal.memory_read() and memcmp()
+
+2. test_dmem_large_transfers()
+   - Use g_hal.dmem_to_dmem_transfer(DMEM0_512_BASE, DMEM1_512_BASE, 262144)
+   - Fill with g_hal.memory_fill(DMEM0_512_BASE, 0x55, 262144)
+   - Verify full 256KB transfer
+
+3. test_dmem_address_validation()
+   - Test g_hal.dmem_to_dmem_transfer(DMEM0_512_BASE, DMEM1_512_BASE, 1024)
+   - Test g_hal.dmem_to_dmem_transfer(DMEM0_512_BASE, DMEM7_512_BASE, 1024)
+   - Verify addresses are within valid ranges
+
+4. test_dmem_data_integrity()
+   - Fill DMEM0_512_BASE with pattern: for(i=0;i<1024;i++) data[i] = i % 256
+   - Transfer to DMEM1_512_BASE
+   - Verify pattern integrity with byte-by-byte comparison
+
+5. test_dmem_concurrent_access()
+   - Fill DMEM0_512_BASE with 0xCC pattern
+   - Fill DMEM2_512_BASE with 0x33 pattern
+   - Transfer DMEM0_512_BASE to DMEM1_512_BASE
+   - Transfer DMEM2_512_BASE to DMEM3_512_BASE
+   - Verify both transfers completed correctly
+
+6. test_dmem_boundary_conditions()
+   - Test g_hal.dmem_to_dmem_transfer(DMEM0_512_BASE, DMEM1_512_BASE, 1)
+   - Test g_hal.dmem_to_dmem_transfer(DMEM0_512_BASE + DMEM_512_SIZE - 256, DMEM1_512_BASE, 256)
+   - Test transfers at first byte and last 256 bytes
+
+7. test_dmem_error_handling()
+   - Test g_hal.dmem_to_dmem_transfer(DMEM0_512_BASE, DMEM1_512_BASE, 0)
+   - Test g_hal.memory_read(DMEM0_512_BASE, NULL, 256)
+   - Verify proper error handling for invalid parameters
+
+8. test_dmem_performance_basic()
+   - Measure time for g_hal.dmem_to_dmem_transfer(DMEM0_512_BASE, DMEM1_512_BASE, 65536)
+   - Use clock_gettime() before and after transfer
+   - Calculate bytes per second
+
+9. test_dmem_cross_module_transfers()
+   - Transfer DMEM0_512_BASE to DMEM3_512_BASE (256 bytes)
+   - Transfer DMEM1_512_BASE to DMEM6_512_BASE (512 bytes)
+   - Transfer DMEM2_512_BASE to DMEM7_512_BASE (1024 bytes)
+   - Verify all cross-module transfers
+
+10. test_dmem_alignment_testing()
+    - Test g_hal.dmem_to_dmem_transfer(DMEM0_512_BASE + 1, DMEM1_512_BASE + 1, 255)
+    - Test g_hal.dmem_to_dmem_transfer(DMEM0_512_BASE + 3, DMEM1_512_BASE + 3, 253)
+    - Test g_hal.dmem_to_dmem_transfer(DMEM0_512_BASE + 7, DMEM1_512_BASE + 7, 249)
+    - Verify unaligned address handling
+
+REQUIRED INCLUDES
+
+Use these exact includes in dmem_tests.c:
+#include <stdio.h>
+#include <string.h>
+#include <pthread.h>
+#include <stdarg.h>
+#include <time.h>
+#include "dmem_tests.h"
+#include "hal_tests/hal_interface.h"
+#include "generated/mem_map.h"
+
+DELIVERABLES
+
+Generate exactly these two files:
+
+1. hal_tests/dmem_tests.h:
+
+#ifndef DMEM_TESTS_H
+#define DMEM_TESTS_H
+
+#include "c0_master/c0_controller.h"
+
+int test_dmem_basic_functionality(mesh_platform_t* p);
+int test_dmem_large_transfers(mesh_platform_t* p);
+int test_dmem_address_validation(mesh_platform_t* p);
+int test_dmem_data_integrity(mesh_platform_t* p);
+int test_dmem_concurrent_access(mesh_platform_t* p);
+int test_dmem_boundary_conditions(mesh_platform_t* p);
+int test_dmem_error_handling(mesh_platform_t* p);
+int test_dmem_performance_basic(mesh_platform_t* p);
+int test_dmem_cross_module_transfers(mesh_platform_t* p);
+int test_dmem_alignment_testing(mesh_platform_t* p);
+
+#endif
+
+2. hal_tests/dmem_tests.c:
+   - All required includes
+   - All static utility functions
+   - All 10 test function implementations
+   - COPY-PASTE INTEGRATION section
+
+COPY-PASTE INTEGRATION SECTION
+
+Include this exact section at the end of dmem_tests.c:
+
+/*
+COPY-PASTE INTEGRATION FOR c0_controller.c
+
+Add to c0_run_hal_tests_distributed() extern declarations:
+extern int test_dmem_basic_functionality(mesh_platform_t* p);
+extern int test_dmem_large_transfers(mesh_platform_t* p);
+extern int test_dmem_address_validation(mesh_platform_t* p);
+extern int test_dmem_data_integrity(mesh_platform_t* p);
+extern int test_dmem_concurrent_access(mesh_platform_t* p);
+extern int test_dmem_boundary_conditions(mesh_platform_t* p);
+extern int test_dmem_error_handling(mesh_platform_t* p);
+extern int test_dmem_performance_basic(mesh_platform_t* p);
+extern int test_dmem_cross_module_transfers(mesh_platform_t* p);
+extern int test_dmem_alignment_testing(mesh_platform_t* p);
+
+Add these wrapper functions before hal_tests[] array:
+static int hal_test_dmem_basic_functionality_wrapper(void* p) { 
+    extern int test_dmem_basic_functionality(mesh_platform_t* p);
+    return test_dmem_basic_functionality((mesh_platform_t*)p);
+}
+static int hal_test_dmem_large_transfers_wrapper(void* p) { 
+    extern int test_dmem_large_transfers(mesh_platform_t* p);
+    return test_dmem_large_transfers((mesh_platform_t*)p);
+}
+static int hal_test_dmem_address_validation_wrapper(void* p) { 
+    extern int test_dmem_address_validation(mesh_platform_t* p);
+    return test_dmem_address_validation((mesh_platform_t*)p);
+}
+static int hal_test_dmem_data_integrity_wrapper(void* p) { 
+    extern int test_dmem_data_integrity(mesh_platform_t* p);
+    return test_dmem_data_integrity((mesh_platform_t*)p);
+}
+static int hal_test_dmem_concurrent_access_wrapper(void* p) { 
+    extern int test_dmem_concurrent_access(mesh_platform_t* p);
+    return test_dmem_concurrent_access((mesh_platform_t*)p);
+}
+static int hal_test_dmem_boundary_conditions_wrapper(void* p) { 
+    extern int test_dmem_boundary_conditions(mesh_platform_t* p);
+    return test_dmem_boundary_conditions((mesh_platform_t*)p);
+}
+static int hal_test_dmem_error_handling_wrapper(void* p) { 
+    extern int test_dmem_error_handling(mesh_platform_t* p);
+    return test_dmem_error_handling((mesh_platform_t*)p);
+}
+static int hal_test_dmem_performance_basic_wrapper(void* p) { 
+    extern int test_dmem_performance_basic(mesh_platform_t* p);
+    return test_dmem_performance_basic((mesh_platform_t*)p);
+}
+static int hal_test_dmem_cross_module_transfers_wrapper(void* p) { 
+    extern int test_dmem_cross_module_transfers(mesh_platform_t* p);
+    return test_dmem_cross_module_transfers((mesh_platform_t*)p);
+}
+static int hal_test_dmem_alignment_testing_wrapper(void* p) { 
+    extern int test_dmem_alignment_testing(mesh_platform_t* p);
+    return test_dmem_alignment_testing((mesh_platform_t*)p);
+}
+
+Add to hal_tests[] array:
+{hal_test_dmem_basic_functionality_wrapper, "DMEM-Basic-Functionality", 0},
+{hal_test_dmem_large_transfers_wrapper, "DMEM-Large-Transfers", 0},
+{hal_test_dmem_address_validation_wrapper, "DMEM-Address-Validation", 0},
+{hal_test_dmem_data_integrity_wrapper, "DMEM-Data-Integrity", 0},
+{hal_test_dmem_concurrent_access_wrapper, "DMEM-Concurrent-Access", 0},
+{hal_test_dmem_boundary_conditions_wrapper, "DMEM-Boundary-Conditions", 0},
+{hal_test_dmem_error_handling_wrapper, "DMEM-Error-Handling", 0},
+{hal_test_dmem_performance_basic_wrapper, "DMEM-Performance-Basic", 0},
+{hal_test_dmem_cross_module_transfers_wrapper, "DMEM-Cross-Module-Transfers", 0},
+{hal_test_dmem_alignment_testing_wrapper, "DMEM-Alignment-Testing", 0},
+
+Add to Makefile SRCS:
+SRCS += hal_tests/dmem_tests.c
+*/
+
+The generated code must compile and integrate immediately without any modifications.

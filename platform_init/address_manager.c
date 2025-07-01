@@ -55,6 +55,23 @@ uint8_t* addr_to_ptr(uint64_t address) {
         }
     }
     
+    // Check if PLIC's address
+    for(int plic=0;plic<3;plic++){
+        // C0C1 address space
+        uint64_t c0c1_base = PLIC_0_C0C1_BASE +(plic * PLIC_SIZE);
+        if(address >= c0c1_base && address < c0c1_base + PLIC_SIZE){
+            uint64_t offset = address - c0c1_base;
+            return g_platform -> plic_instances[plic].c0c1_ptr + offset;
+        }
+
+        // NXY address space
+        uint64_t nxy_base = PLIC_0_NXY_BASE + (plic* PLIC_SIZE);
+        if(address >= nxy_base && address < nxy_base + PLIC_SIZE){
+            uint64_t offset = address - nxy_base;
+            return g_platform->plic_instances[plic].nxy_ptr + offset;
+        }
+    }
+
     // Fallback to memory pool for other regions (C0 control, etc.)
     if (g_memory_pool) {
         if (address >= C0_MASTER_BASE && address < C0_MASTER_BASE + C0_MASTER_SIZE) {

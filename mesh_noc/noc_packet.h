@@ -9,8 +9,6 @@ typedef enum {
     PKT_WRITE_REQ,
     PKT_WRITE_ACK,
     PKT_DMA_TRANSFER,
-    PKT_INTERRUPT_REQ,    // NEW: Interrupt request from tile to C0
-    PKT_INTERRUPT_ACK     // NEW: Interrupt acknowledgment from C0 to tile
 } pkt_type_t;
 
 typedef struct {

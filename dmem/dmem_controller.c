@@ -93,7 +93,7 @@ int dmem_copy(uint64_t src_addr, uint64_t dst_addr, size_t size) {
     
     // Simulate DMEM-to-DMEM copy operation
     memcpy(dst_ptr, src_ptr, size);
-    return (int)size;
+    return 0;  // Return 0 for success (not byte count)
 }
 
 int dmem_get_status(int dmem_id) {

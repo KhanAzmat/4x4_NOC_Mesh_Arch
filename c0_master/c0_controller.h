@@ -5,6 +5,11 @@
 #include <pthread.h>
 #include <stdbool.h>
 #include <time.h>
+#include "interrupt/plic.h"
+#include "generated/mem_map.h"
+
+// Add DMAC512 support
+#include "hal/dma512/hal_dmac512.h"
 
 // ============================================================================
 // INTERRUPT SYSTEM INTEGRATION
@@ -190,6 +195,10 @@ typedef struct {
     uint8_t* dlm1_512_ptr;
     uint8_t* dma_regs_ptr;
     
+    // DMAC512 handle for this tile
+    DMAC512_HandleTypeDef dmac512_handle;
+    bool dmac512_initialized;
+    
     // STEP 1: Basic threading infrastructure
     pthread_t thread_id;
     volatile bool running;
@@ -218,6 +227,14 @@ typedef struct {
     size_t dmem_size;
 } dmem_module_t;
 
+// Add PLIC instance structure
+typedef struct {
+    uint8_t* c0c1_ptr;    // Controller PLIC memory
+    uint8_t* nxy_ptr;     // Mesh PLIC memory
+    uint64_t c0c1_base;   // Controller PLIC base address
+    uint64_t nxy_base;    // Mesh PLIC base address
+} plic_instance_t;
+
 // STEP 2: Enhanced platform with task coordination system
 typedef struct {
     tile_core_t* nodes;
@@ -241,9 +258,12 @@ typedef struct {
     volatile int active_tasks;
     volatile int completed_tasks;
     
-    // NEW: Integrated interrupt system
-    c0_interrupt_controller_t interrupt_controller;
-    volatile bool interrupt_processing_enabled;
+    // ADD PLIC tracking:
+    volatile bool plic_enabled;
+    uint64_t plic_interrupts_processed;
+    
+    // Add PLIC instances
+    plic_instance_t plic_instances[3];  // Support up to 3 PLIC controllers
     
 } mesh_platform_t;
 
@@ -313,5 +333,16 @@ int default_error_handler(interrupt_request_t* irq, void* platform_context);
 int default_dma_complete_handler(interrupt_request_t* irq, void* platform_context);
 int default_resource_request_handler(interrupt_request_t* irq, void* platform_context);
 int default_shutdown_handler(interrupt_request_t* irq, void* platform_context);
+
+// PLIC interrupt processing functions
+int c0_process_plic_interrupts(mesh_platform_t* platform);
+void handle_plic_interrupt_from_tile(mesh_platform_t* platform, uint32_t source_hart, uint32_t source_id);
+
+// Enhanced PLIC functions for bidirectional communication
+int c0_process_enhanced_plic_interrupts(mesh_platform_t* platform);
+const char* get_interrupt_type_name(irq_source_id_t irq_type);
+void handle_enhanced_plic_interrupt(mesh_platform_t* platform, uint32_t source_hart, 
+                                   irq_source_id_t irq_type, uint32_t source_id);
+void demo_bidirectional_plic_communication(mesh_platform_t* platform);
 
 #endif

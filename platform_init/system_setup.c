@@ -6,6 +6,8 @@
 #include "platform_init/tile_init.h"
 #include "hal_tests/hal_interface.h"
 #include "address_manager.h"
+#include "interrupt/plic.h"
+#include "tile/tile_dma.h"
 
 // void platform_setup(mesh_platform_t* p)
 // {
@@ -70,6 +72,15 @@ void platform_setup(mesh_platform_t* p)
         p->nodes[i].idle = true;
         p->nodes[i].tasks_completed = 0;
         p->nodes[i].total_execution_time = 0;
+        
+        // STEP 3: Initialize DMAC512 for this tile
+        int dmac_init_result = dma_tile_init(i);
+        if (dmac_init_result == 0) {
+            p->nodes[i].dmac512_initialized = true;
+        } else {
+            p->nodes[i].dmac512_initialized = false;
+            printf("Warning: Failed to initialize DMAC512 for tile %d\n", i);
+        }
     }
 
     // Setup DMEMs with real addresses
@@ -105,7 +116,32 @@ void platform_setup(mesh_platform_t* p)
     hal_use_reference_impl();
     hal_set_platform(p);
     
+
+    // Initialize PLIC memory regions
+    uint8_t* plic_c0c1_memory = calloc(PLIC_SIZE, 1);
+    uint8_t* plic_nxy_memory = calloc(PLIC_SIZE, 1);
+    
+    // CRITICAL FIX: Assign allocated memory to platform structure
+    p->plic_instances[0].c0c1_ptr = plic_c0c1_memory;
+    p->plic_instances[0].nxy_ptr = plic_nxy_memory;
+    p->plic_instances[0].c0c1_base = PLIC_0_C0C1_BASE;
+    p->plic_instances[0].nxy_base = PLIC_0_NXY_BASE;
+    
+    register_memory_region(PLIC_0_C0C1_BASE, plic_c0c1_memory, PLIC_SIZE);
+    register_memory_region(PLIC_0_NXY_BASE, plic_nxy_memory, PLIC_SIZE);
+    
+    // Initialize PLIC basic structures for each hart
+    for (int hart_id = 0; hart_id < NUM_TILES; hart_id++) {
+        plic_init_for_this_hart(hart_id);
+    }
+    
+    // Setup bidirectional interrupt capabilities (replaces hardcoded setup)
+    PLIC_setup_bidirectional_interrupts();
+    
+    printf("[Platform Setup] Enhanced PLIC integration complete with bidirectional support\n");
+    
     printf("[Platform Setup] (Step 2)\n");
+
 }
 
 

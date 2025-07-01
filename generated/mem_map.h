@@ -122,4 +122,20 @@
 #define NOC_PACKET_HEADER_SIZE 32   // bytes
 #define NOC_MAX_PAYLOAD_BYTES  64   // bytes (512 bits)
 
+// -----------------------------
+// PLIC Controller Addresses (Updated for platform)
+// -----------------------------
+#define PLIC_0_C0C1_BASE   0x90000000UL  // Controller cores PLIC
+#define PLIC_0_NXY_BASE    0x90400000UL  // Mesh nodes PLIC
+#define PLIC_1_C0C1_BASE   0x90800000UL  // (Reserved)
+#define PLIC_1_NXY_BASE    0x90C00000UL  // (Reserved)
+#define PLIC_2_C0C1_BASE   0x91000000UL  // (Reserved)
+#define PLIC_2_NXY_BASE    0x91400000UL  // (Reserved)
+#define PLIC_SIZE          0x0000000000400000UL  // 4MB per PLIC
+
+// -----------------------------
+// PLIC Memory Region Strides
+// -----------------------------
+#define PLIC_STRIDE        0x00400000UL  //4mb per PLIC instance
+
 #endif // MEM_MAP_H

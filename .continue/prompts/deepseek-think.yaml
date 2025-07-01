@@ -1,0 +1,7 @@
+name: deepseek-think
+version: 0.0.1
+schema: v1
+prompts:
+  - name: deepseek-think
+    description: Force reasoning pattern
+    prompt: <think> Please reason step by step, and put your final answer within \boxed{} 

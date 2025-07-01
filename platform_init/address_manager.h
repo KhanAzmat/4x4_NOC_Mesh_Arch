@@ -17,6 +17,8 @@ typedef enum {
     ADDR_TILE_DMA_REG,
     ADDR_DMEM_512,
     ADDR_C0_MASTER,
+    ADDR_PLIC_C0C1,
+    ADDR_PLIC_NXY,
     ADDR_INVALID
 } addr_region_t;
 

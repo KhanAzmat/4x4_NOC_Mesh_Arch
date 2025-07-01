@@ -17,7 +17,7 @@
 extern mesh_platform_t* g_platform_context;
 
 // Forward declarations for interrupt handling
-void noc_handle_interrupt_packet(const noc_packet_t* pkt);
+// void noc_handle_interrupt_packet(const noc_packet_t* pkt);
 int parse_irq_packet(const noc_packet_t* pkt, interrupt_request_t* irq);
 
 int noc_trace_enabled = 0;
@@ -75,11 +75,11 @@ int noc_send_packet(const noc_packet_t* pkt)
     int lock_index = get_destination_lock_index(pkt->hdr.dst_addr);
     
     // Handle interrupt packets first (highest priority)
-    if (pkt->hdr.type == PKT_INTERRUPT_REQ || pkt->hdr.type == PKT_INTERRUPT_ACK) {
-        // Route interrupt packet to destination's interrupt handler
-        noc_handle_interrupt_packet(pkt);
-        return 0; // Success
-    }
+    // if (pkt->hdr.type == PKT_INTERRUPT_REQ || pkt->hdr.type == PKT_INTERRUPT_ACK) {
+    //     // Route interrupt packet to destination's interrupt handler
+    //     noc_handle_interrupt_packet(pkt);
+    //     return 0; // Success
+    // }
     
     if (pkt->hdr.type == PKT_DMA_TRANSFER && pkt->hdr.src_addr && pkt->hdr.dst_addr) {
         uint8_t* src_ptr = addr_to_ptr(pkt->hdr.src_addr);
@@ -142,70 +142,70 @@ int noc_send_packet(const noc_packet_t* pkt)
 }
 
 // Handle interrupt packets routed through NoC
-void noc_handle_interrupt_packet(const noc_packet_t* pkt) {
-    if (!pkt || (pkt->hdr.type != PKT_INTERRUPT_REQ && pkt->hdr.type != PKT_INTERRUPT_ACK)) {
-        printf("[NOC-IRQ-ERROR] Invalid interrupt packet\n");
-        return;
-    }
-    
-    int dst_entity = pkt->hdr.dest_y * 4 + pkt->hdr.dest_x;
-    int src_entity = pkt->hdr.src_y * 4 + pkt->hdr.src_x;
-    
-    if (noc_trace_enabled) {
-        printf("[NOC-IRQ] Routing interrupt packet from entity %d to entity %d\n",
-               src_entity, dst_entity);
-    }
-    
-    if (pkt->hdr.type == PKT_INTERRUPT_REQ) {
-        // This is an interrupt request - extract and deliver to destination
-        printf("[NOC-IRQ-REQ] Entity %d sent interrupt request to entity %d\n",
-               src_entity, dst_entity);
-        
-        // Extract compact interrupt data from packet payload
-        if (pkt->hdr.length == sizeof(compact_interrupt_packet_t) && pkt->hdr.length <= sizeof(pkt->payload)) {
-            compact_interrupt_packet_t compact_irq;
-            memcpy(&compact_irq, pkt->payload, sizeof(compact_interrupt_packet_t));
-            
-            // Convert compact format back to full interrupt request
-            interrupt_request_t irq;
-            memset(&irq, 0, sizeof(irq));
-            
-            irq.source_tile = (int)compact_irq.source_tile;
-            irq.type = (interrupt_type_t)compact_irq.type;
-            irq.priority = (interrupt_priority_t)compact_irq.priority;
-            irq.timestamp = compact_irq.timestamp;
-            irq.data = compact_irq.data;
-            irq.valid = compact_irq.valid ? true : false;
-            
-            // Copy message (compact has smaller message field)
-            strncpy(irq.message, compact_irq.message, sizeof(irq.message) - 1);
-            irq.message[sizeof(irq.message) - 1] = '\0';
-            
-            // Deliver to destination entity
-            if (dst_entity == 0 && g_platform_context) {
-                // This is for C0 master - deliver to interrupt controller
-                int result = noc_handle_received_interrupt(g_platform_context, &irq);
-                if (result == 0) {
-                    printf("[NOC-IRQ-DELIVERED] Successfully delivered %s interrupt from tile %d to C0\n",
-                           get_irq_type_name(irq.type), src_entity);
-                } else {
-                    printf("[NOC-IRQ-DROPPED] Failed to deliver interrupt from tile %d to C0\n", src_entity);
-                }
-            } else {
-                printf("[NOC-IRQ-UNSUPPORTED] Interrupt delivery to tile %d not yet supported\n", dst_entity);
-            }
-        } else {
-            printf("[NOC-IRQ-ERROR] Invalid interrupt packet payload size (expected %zu, got %u)\n",
-                   sizeof(compact_interrupt_packet_t), pkt->hdr.length);
-        }
-        
-    } else if (pkt->hdr.type == PKT_INTERRUPT_ACK) {
-        // This is an interrupt acknowledgment
-        printf("[NOC-IRQ-ACK] Entity %d sent interrupt acknowledgment to entity %d\n",
-               src_entity, dst_entity);
-        // Could implement ACK handling here if needed
-    }
-    
-    // Simulate minimal interrupt routing delay (much faster than data transfers)
-    usleep(1); // 1 microsecond for interrupt routing
-}
+// void noc_handle_interrupt_packet(const noc_packet_t* pkt) {
+//     if (!pkt || (pkt->hdr.type != PKT_INTERRUPT_REQ && pkt->hdr.type != PKT_INTERRUPT_ACK)) {
+//         printf("[NOC-IRQ-ERROR] Invalid interrupt packet\n");
+//         return;
+//     }
+//     
+//     int dst_entity = pkt->hdr.dest_y * 4 + pkt->hdr.dest_x;
+//     int src_entity = pkt->hdr.src_y * 4 + pkt->hdr.src_x;
+//     
+//     if (noc_trace_enabled) {
+//         printf("[NOC-IRQ] Routing interrupt packet from entity %d to entity %d\n",
+//                src_entity, dst_entity);
+//     }
+//     
+//     if (pkt->hdr.type == PKT_INTERRUPT_REQ) {
+//         // This is an interrupt request - extract and deliver to destination
+//         printf("[NOC-IRQ-REQ] Entity %d sent interrupt request to entity %d\n",
+//                src_entity, dst_entity);
+//         
+//         // Extract compact interrupt data from packet payload
+//         if (pkt->hdr.length == sizeof(compact_interrupt_packet_t) && pkt->hdr.length <= sizeof(pkt->payload)) {
+//             compact_interrupt_packet_t compact_irq;
+//             memcpy(&compact_irq, pkt->payload, sizeof(compact_interrupt_packet_t));
+//             
+//             // Convert compact format back to full interrupt request
+//             interrupt_request_t irq;
+//             memset(&irq, 0, sizeof(irq));
+//             
+//             irq.source_tile = (int)compact_irq.source_tile;
+//             irq.type = (interrupt_type_t)compact_irq.type;
+//             irq.priority = (interrupt_priority_t)compact_irq.priority;
+//             irq.timestamp = compact_irq.timestamp;
+//             irq.data = compact_irq.data;
+//             irq.valid = compact_irq.valid ? true : false;
+//             
+//             // Copy message (compact has smaller message field)
+//             strncpy(irq.message, compact_irq.message, sizeof(irq.message) - 1);
+//             irq.message[sizeof(irq.message) - 1] = '\0';
+//             
+//             // Deliver to destination entity
+//             if (dst_entity == 0 && g_platform_context) {
+//                 // This is for C0 master - deliver to interrupt controller
+//                 int result = noc_handle_received_interrupt(g_platform_context, &irq);
+//                 if (result == 0) {
+//                     printf("[NOC-IRQ-DELIVERED] Successfully delivered %s interrupt from tile %d to C0\n",
+//                            get_irq_type_name(irq.type), src_entity);
+//                 } else {
+//                     printf("[NOC-IRQ-DROPPED] Failed to deliver interrupt from tile %d to C0\n", src_entity);
+//                 }
+//             } else {
+//                 printf("[NOC-IRQ-UNSUPPORTED] Interrupt delivery to tile %d not yet supported\n", dst_entity);
+//             }
+//         } else {
+//             printf("[NOC-IRQ-ERROR] Invalid interrupt packet payload size (expected %zu, got %u)\n",
+//                    sizeof(compact_interrupt_packet_t), pkt->hdr.length);
+//         }
+//         
+//     } else if (pkt->hdr.type == PKT_INTERRUPT_ACK) {
+//         // This is an interrupt acknowledgment
+//         printf("[NOC-IRQ-ACK] Entity %d sent interrupt acknowledgment to entity %d\n",
+//                src_entity, dst_entity);
+//         // Could implement ACK handling here if needed
+//     }
+//     
+//     // Simulate minimal interrupt routing delay (much faster than data transfers)
+//     usleep(1); // 1 microsecond for interrupt routing
+// }
