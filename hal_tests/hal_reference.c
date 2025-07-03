@@ -8,8 +8,13 @@
 #include "mesh_noc/mesh_router.h"
 #include "mesh_noc/noc_packet.h"
 #include "dmem/dmem_controller.h"
+#include "hal_dmac512.h"  // Phase 3: DMAC512 HAL integration
+#include "generated/mem_map.h"  // For NUM_TILES constant
 #include <pthread.h>
 #include <unistd.h>
+#include "dmac512_hardware_monitor.h"
+
+// Remove the HAL bypass - let HAL/Driver execute normally
 
 static mesh_platform_t* g_platform = NULL;
 
@@ -28,6 +33,31 @@ void hal_function_exit(const char* hal_func, int result) {
 }
 
 void hal_set_platform(mesh_platform_t* p) { g_platform = p; }
+
+// Helper function to monitor DMA registers after HAL operations
+static void monitor_dma_after_hal(DMAC512_HandleTypeDef* dmac_handle) {
+    if (!dmac_handle || !dmac_handle->Instance) {
+        return;
+    }
+    
+    extern mesh_platform_t* global_platform_ptr;
+    if (!global_platform_ptr) {
+        return;
+    }
+    
+    // Find which tile this DMAC handle belongs to
+    int tile_id = platform_get_tile_id_from_dmac_regs(dmac_handle->Instance);
+    if (tile_id >= 0) {
+        // Check if HAL just enabled DMA and execute transfer immediately
+        uint32_t xfer_cnt_reg = dmac_handle->Instance->DMAC_TOTAL_XFER_CNT;
+        bool dma_enabled = (xfer_cnt_reg & DMAC512_TOTAL_XFER_CNT_DMAC_EN_MASK) != 0;
+        
+        if (dma_enabled) {
+            printf("[DMAC512-POST-HAL] Tile %d: HAL enabled DMA, executing transfer immediately\n", tile_id);
+            dmac512_execute_on_enable_write(tile_id, global_platform_ptr, dmac_handle->Instance);
+        }
+    }
+}
 
 static int ref_cpu_local_move(uint64_t src_addr, uint64_t dst_addr, size_t size)
 {
@@ -67,15 +97,67 @@ static int ref_dma_local_transfer(int tile_id, uint64_t src_addr, uint64_t dst_a
     
     pthread_mutex_lock(&hal_mutex);
     
-    printf("[DRIVER-CALL] DMA Local Transfer → tile DMA driver\n");
+    if (!g_platform || tile_id < 0 || tile_id >= NUM_TILES) {
+        pthread_mutex_unlock(&hal_mutex);
+        hal_function_exit("hal_dma_local_transfer", -1);
+        return -1;
+    }
+    
+    printf("[DRIVER-CALL] DMA Local Transfer → DMAC512 HAL driver\n");
     fflush(stdout);
     
-    // Call tile DMA driver
-    int result = dma_local_transfer(tile_id, src_addr, dst_addr, size);
+    // Phase 3: Use DMAC512 HAL instead of basic DMA
+    DMAC512_HandleTypeDef* dmac_handle = &g_platform->nodes[tile_id].dmac512_handle;
+    
+    // Configure DMAC512 for the transfer
+    dmac_handle->Init.SrcAddr = src_addr;
+    dmac_handle->Init.DstAddr = dst_addr;
+    dmac_handle->Init.XferCount = (uint32_t)size;
+    dmac_handle->Init.dob_beat = DMAC512_AXI_TRANS_4;  // Default 4-beat transfers
+    dmac_handle->Init.dfb_beat = DMAC512_AXI_TRANS_4;
+    dmac_handle->Init.DmacMode = DMAC512_NORMAL_MODE;
+    
+    printf("[DMAC512-HAL] Tile %d: Configuring transfer (src=0x%lX, dst=0x%lX, size=%zu)\n",
+           tile_id, src_addr, dst_addr, size);
+    fflush(stdout);
+    
+    // Configure the channel (writes to registers)
+    int32_t config_result = HAL_DMAC512ConfigureChannel(dmac_handle);
+    if (config_result != 0) {
+        printf("[DMAC512-HAL] Tile %d: Configuration failed\n", tile_id);
+        pthread_mutex_unlock(&hal_mutex);
+        hal_function_exit("hal_dma_local_transfer", -1);
+        return -1;
+    }
+    
+    printf("[DMAC512-HAL] Tile %d: Starting transfer...\n", tile_id);
+    fflush(stdout);
+    
+    // Start the transfer (writes enable bit - should trigger Phase 2 detection)
+    HAL_DMAC512StartTransfers(dmac_handle);
+    
+    // Monitor DMA registers after HAL operation and execute transfer immediately if enabled
+    monitor_dma_after_hal(dmac_handle);
+    
+    // Wait for transfer completion (poll busy status)
+    int timeout = 1000; // 1000 iterations max
+    while (HAL_DMAC512IsBusy(dmac_handle) && timeout > 0) {
+        usleep(100); // 100 microseconds
+        timeout--;
+    }
+    
+    if (timeout == 0) {
+        printf("[DMAC512-HAL] Tile %d: Transfer timeout\n", tile_id);
+        pthread_mutex_unlock(&hal_mutex);
+        hal_function_exit("hal_dma_local_transfer", -1);
+        return -1;
+    }
+    
+    printf("[DMAC512-HAL] Tile %d: Transfer completed successfully\n", tile_id);
     
     pthread_mutex_unlock(&hal_mutex);
-    hal_function_exit("hal_dma_local_transfer", result);
-    return result;
+    hal_function_exit("hal_dma_local_transfer", (int)size);
+    return (int)size;
 }
 
 static int ref_dma_remote_transfer(uint64_t src_addr, uint64_t dst_addr, size_t size)
@@ -94,8 +176,6 @@ static int ref_dma_remote_transfer(uint64_t src_addr, uint64_t dst_addr, size_t 
         hal_function_exit("hal_dma_remote_transfer", -1);
         return -1;
     }
-
-    
     
     // Validate this is a valid remote transfer (tile<->dmem)
     addr_region_t src_region = get_address_region(src_addr);
@@ -109,35 +189,77 @@ static int ref_dma_remote_transfer(uint64_t src_addr, uint64_t dst_addr, size_t 
         return -1;
     }
     
-    printf("[DRIVER-CALL] DMA Remote Transfer → NoC packet driver\n");
+    printf("[DRIVER-CALL] DMA Remote Transfer → DMAC512 HAL driver\n");
     fflush(stdout);
     
-    // Create NoC packet with address information
-    noc_packet_t pkt = {0};
-    int src_tile = get_tile_id_from_address(src_addr);
-    int dst_tile = get_tile_id_from_address(dst_addr);
-    
-    if (src_tile >= 0) {
-        pkt.hdr.src_x = src_tile % 4;
-        pkt.hdr.src_y = src_tile / 4;
-    }
-    if (dst_tile >= 0) {
-        pkt.hdr.dest_x = dst_tile % 4;
-        pkt.hdr.dest_y = dst_tile / 4;
+    // Phase 3: Determine which tile's DMAC512 to use for remote transfer
+    int tile_id = -1;
+    if (src_region == ADDR_TILE_DLM1_512) {
+        tile_id = get_tile_id_from_address(src_addr);
+    } else if (dst_region == ADDR_TILE_DLM1_512) {
+        tile_id = get_tile_id_from_address(dst_addr);
     }
     
-    pkt.hdr.type = PKT_DMA_TRANSFER;
-    pkt.hdr.length = (uint16_t)size;
-    pkt.hdr.src_addr = src_addr;  // Add source address
-    pkt.hdr.dst_addr = dst_addr;  // Add destination address
+    if (tile_id < 0 || tile_id >= NUM_TILES) {
+        // Fallback to tile 0 for DMEM-to-DMEM or unknown cases
+        tile_id = 0;
+    }
     
-    // NoC driver now does both routing AND data transfer
-    noc_send_packet(&pkt);
+    printf("[DMAC512-HAL] Using Tile %d DMAC512 for remote transfer\n", tile_id);
+    fflush(stdout);
+    
+    // Phase 3: Use DMAC512 HAL instead of direct NoC packets
+    DMAC512_HandleTypeDef* dmac_handle = &g_platform->nodes[tile_id].dmac512_handle;
+    
+    // Configure DMAC512 for the remote transfer
+    dmac_handle->Init.SrcAddr = src_addr;
+    dmac_handle->Init.DstAddr = dst_addr;
+    dmac_handle->Init.XferCount = (uint32_t)size;
+    dmac_handle->Init.dob_beat = DMAC512_AXI_TRANS_4;  // Default 4-beat transfers
+    dmac_handle->Init.dfb_beat = DMAC512_AXI_TRANS_4;
+    dmac_handle->Init.DmacMode = DMAC512_NORMAL_MODE;
+    
+    printf("[DMAC512-HAL] Tile %d: Configuring remote transfer (src=0x%lX, dst=0x%lX, size=%zu)\n",
+           tile_id, src_addr, dst_addr, size);
+    fflush(stdout);
+    
+    // Configure the channel (writes to registers)
+    int32_t config_result = HAL_DMAC512ConfigureChannel(dmac_handle);
+    if (config_result != 0) {
+        printf("[DMAC512-HAL] Tile %d: Configuration failed\n", tile_id);
+        pthread_mutex_unlock(&hal_mutex);
+        hal_function_exit("hal_dma_remote_transfer", -1);
+        return -1;
+    }
+    
+    printf("[DMAC512-HAL] Tile %d: Starting remote transfer...\n", tile_id);
+    fflush(stdout);
+    
+    // Start the transfer (writes enable bit - should trigger Phase 2 detection)
+    HAL_DMAC512StartTransfers(dmac_handle);
+    
+    // Monitor DMA registers after HAL operation and execute transfer immediately if enabled
+    monitor_dma_after_hal(dmac_handle);
+    
+    // Wait for transfer completion (poll busy status)
+    int timeout = 1000; // 1000 iterations max
+    while (HAL_DMAC512IsBusy(dmac_handle) && timeout > 0) {
+        usleep(100); // 100 microseconds
+        timeout--;
+    }
+    
+    if (timeout == 0) {
+        printf("[DMAC512-HAL] Tile %d: Remote transfer timeout\n", tile_id);
+        pthread_mutex_unlock(&hal_mutex);
+        hal_function_exit("hal_dma_remote_transfer", -1);
+        return -1;
+    }
+    
+    printf("[DMAC512-HAL] Tile %d: Remote transfer completed successfully\n", tile_id);
     
     pthread_mutex_unlock(&hal_mutex);
     hal_function_exit("hal_dma_remote_transfer", (int)size);
     return (int)size;
-
 }
 
 static int ref_dmem_to_dmem_transfer(uint64_t src_addr, uint64_t dst_addr, size_t size)

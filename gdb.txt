@@ -1,0 +1,36 @@
+[Thread debugging using libthread_db enabled]
+Using host libthread_db library "/lib/x86_64-linux-gnu/libthread_db.so.1".
+
+Program received signal SIGSEGV, Segmentation fault.
+0x0000555555559898 in PLIC_enable_interrupt ()
+Dump of assembler code for function PLIC_enable_interrupt:
+   0x0000555555559850 <+0>:	endbr64 
+   0x0000555555559854 <+4>:	mov    %edi,%eax
+   0x0000555555559856 <+6>:	xor    %edx,%edx
+   0x0000555555559858 <+8>:	cmp    $0x1,%esi
+   0x000055555555985b <+11>:	jbe    0x55555555986a <PLIC_enable_interrupt+26>
+   0x000055555555985d <+13>:	cmp    $0x11,%esi
+   0x0000555555559860 <+16>:	ja     0x5555555598a8 <PLIC_enable_interrupt+88>
+   0x0000555555559862 <+18>:	sub    $0x2,%esi
+   0x0000555555559865 <+21>:	mov    $0x1,%edx
+   0x000055555555986a <+26>:	lea    -0x1(%rax),%ecx
+   0x000055555555986d <+29>:	cmp    $0x3fe,%ecx
+   0x0000555555559873 <+35>:	ja     0x5555555598a1 <PLIC_enable_interrupt+81>
+   0x0000555555559875 <+37>:	cmp    $0xf,%esi
+   0x0000555555559878 <+40>:	ja     0x5555555598a1 <PLIC_enable_interrupt+81>
+   0x000055555555987a <+42>:	lea    0xd2df(%rip),%rcx        # 0x555555566b60 <PLIC_INST>
+   0x0000555555559881 <+49>:	mov    %esi,%esi
+   0x0000555555559883 <+51>:	mov    (%rcx,%rdx,8),%rcx
+   0x0000555555559887 <+55>:	mov    %eax,%edx
+   0x0000555555559889 <+57>:	shl    $0x5,%rsi
+   0x000055555555988d <+61>:	shr    $0x5,%edx
+   0x0000555555559890 <+64>:	lea    0x800(%rdx,%rsi,1),%rsi
+=> 0x0000555555559898 <+72>:	mov    (%rcx,%rsi,4),%edx
+   0x000055555555989b <+75>:	bts    %eax,%edx
+   0x000055555555989e <+78>:	mov    %edx,(%rcx,%rsi,4)
+   0x00005555555598a1 <+81>:	ret    
+   0x00005555555598a2 <+82>:	nopw   0x0(%rax,%rax,1)
+   0x00005555555598a8 <+88>:	sub    $0x12,%esi
+   0x00005555555598ab <+91>:	mov    $0x2,%edx
+   0x00005555555598b0 <+96>:	jmp    0x55555555986a <PLIC_enable_interrupt+26>
+End of assembler dump.

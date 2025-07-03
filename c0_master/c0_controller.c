@@ -14,6 +14,7 @@
 #include "mesh_noc/noc_packet.h"
 #include "mesh_noc/mesh_router.h"
 #include "generated/mem_map.h"
+#include "platform_init/dmac512_hardware_monitor.h"
 
 // STEP 2: Global platform context for tile threads
 mesh_platform_t* g_platform_context = NULL;
@@ -191,15 +192,8 @@ void* tile_processor_main(void* arg)
             // Execute the task
             int result = tile_execute_task(tile, task);
             
-            // NEW: Send task completion interrupt to C0 before completing task
-            if (g_platform_context && g_platform_context->interrupt_processing_enabled) {
-                int irq_result = tile_signal_task_complete(g_platform_context, tile->id, task->task_id);
-                if (irq_result == 0) {
-                    printf("[Tile %d] Sent task completion interrupt for task %d\n", tile->id, task->task_id);
-                } else {
-                    printf("[Tile %d] Failed to send task completion interrupt for task %d\n", tile->id, task->task_id);
-                }
-            }
+            // PLIC: Device-side task completion interrupt (hardware perspective)
+            device_task_completion_interrupt(tile->id, task->task_id);
             
             // Complete the task
             tile_complete_task(g_platform_context, tile, task);
@@ -222,6 +216,18 @@ void* tile_processor_main(void* arg)
             usleep(1000); // 1ms polling interval
         }
         
+        // PLIC: Process any interrupts for this hart
+        int hart_interrupts = plic_process_hart_interrupts(tile->id);
+        if (hart_interrupts > 0) {
+            printf("[Tile %d] Processed %d PLIC interrupts\n", tile->id, hart_interrupts);
+        }
+        
+        // DMAC512: Monitor DMA registers and execute transfers (hardware emulation)
+        int dma_transfers = dmac512_monitor_tile_registers(tile->id, g_platform_context);
+        if (dma_transfers > 0) {
+            printf("[Tile %d] Executed %d DMA transfers as hardware controller\n", tile->id, dma_transfers);
+        }
+        
         // Check if we should stop
         pthread_mutex_lock(&tile->state_lock);
         bool should_run = tile->running;
@@ -230,10 +236,8 @@ void* tile_processor_main(void* arg)
         if (!should_run) break;
     }
     
-    // NEW: Send shutdown notification to C0
-    if (g_platform_context && g_platform_context->interrupt_processing_enabled) {
-        tile_send_interrupt_to_c0(g_platform_context, tile->id, IRQ_TYPE_SHUTDOWN, 0, "Tile processor shutting down");
-    }
+    // PLIC: Device-side shutdown request interrupt (hardware perspective)
+    device_shutdown_request_interrupt(tile->id);
     
     printf("[Tile %d] Processor thread stopping (sent %lu interrupts)...\n", tile->id, tile->interrupts_sent);
     return NULL;
@@ -337,10 +341,10 @@ void c0_master_supervise_tiles(mesh_platform_t* p)
     int supervision_cycles = 0;
     
     while (p->platform_running && supervision_cycles < 5) {
-        // NEW: Process pending interrupts from tiles
-        int interrupts_processed = c0_process_pending_interrupts(p);
+        // PLIC: Process interrupts for C0 master (hart 0)
+        int interrupts_processed = plic_process_hart_interrupts(0);
         if (interrupts_processed > 0) {
-            printf("[C0 Master] Processed %d interrupts this cycle\n", interrupts_processed);
+            printf("[C0 Master] Processed %d PLIC interrupts this cycle\n", interrupts_processed);
         }
         
         // Check tile status for processor tiles (1-7)
@@ -365,13 +369,8 @@ void c0_master_supervise_tiles(mesh_platform_t* p)
         printf("[C0 Master] Supervision cycle %d: %d processor tiles active, %d idle, %d tasks completed, %lu interrupts sent\n", 
                supervision_cycles + 1, active_tiles, idle_tiles, total_completed_tasks, total_interrupts_sent);
         
-        // NEW: Print interrupt controller statistics
-        if (p->interrupt_processing_enabled) {
-            printf("[C0 Master] IRQ stats - Received: %lu, Processed: %lu, Dropped: %lu\n",
-                   p->interrupt_controller.interrupts_received,
-                   p->interrupt_controller.interrupts_processed,
-                   p->interrupt_controller.interrupts_dropped);
-        }
+        // PLIC: Print interrupt statistics (optional)
+        printf("[C0 Master] PLIC statistics available in platform.plic_stats\n");
         
         usleep(200000); // 200ms supervision interval
         supervision_cycles++;
@@ -463,6 +462,35 @@ static void print_end_banner(const char *msg)
     fflush(stdout);
 }
 
+// C0 Test wrapper with DMA monitoring for Tile 0
+static int c0_test_with_dma_monitoring(mesh_platform_t* platform, int (*test_func)(mesh_platform_t*), const char* test_name) {
+    printf("[C0 Master] Executing %s with DMA monitoring...\n", test_name);
+    
+    // Simple approach: periodically check DMA during test execution
+    // For this implementation, we'll run test and then check DMA in a tight loop
+    // In a real implementation, you'd want concurrent execution
+    
+    printf("[C0 Master] Starting %s...\n", test_name);
+    int test_result = test_func(platform);
+    
+    // After test completes, check if any DMA transfers are pending for Tile 0
+    printf("[C0 Master] Checking for pending DMA transfers on Tile 0...\n");
+    int dma_transfers_detected = 0;
+    for (int check = 0; check < 10; check++) {  // Check 10 times over 10ms
+        int transfers = dmac512_monitor_tile_registers(0, platform);
+        if (transfers > 0) {
+            dma_transfers_detected += transfers;
+            printf("[C0 Master] Detected and executed %d DMA transfers for Tile 0 (check %d)\n", transfers, check);
+        }
+        usleep(1000); // 1ms between checks
+    }
+    
+    printf("[C0 Master] %s completed. DMA transfers detected: %d, Result: %s\n", 
+           test_name, dma_transfers_detected, test_result ? "PASS" : "FAIL");
+    
+    return test_result;
+}
+
 // Enhanced test runner with main thread as C0 master
 void c0_run_test_suite(mesh_platform_t* platform)
 {
@@ -472,20 +500,13 @@ void c0_run_test_suite(mesh_platform_t* platform)
     if (platform_start_tile_threads(platform) == 0) {
         printf("[C0 Master] Platform running with tile processors and task system!\n");
         
-        // NEW: Initialize interrupt system for entire test suite
-        if (c0_interrupt_controller_init(&platform->interrupt_controller) == 0) {
-            // Register default interrupt handlers
-            c0_register_interrupt_handler(platform, IRQ_TYPE_TASK_COMPLETE, default_task_complete_handler);
-            c0_register_interrupt_handler(platform, IRQ_TYPE_ERROR, default_error_handler);
-            c0_register_interrupt_handler(platform, IRQ_TYPE_DMA_COMPLETE, default_dma_complete_handler);
-            c0_register_interrupt_handler(platform, IRQ_TYPE_RESOURCE_REQUEST, default_resource_request_handler);
-            c0_register_interrupt_handler(platform, IRQ_TYPE_SHUTDOWN, default_shutdown_handler);
-            
-            // Enable interrupt processing for entire test suite
-            platform->interrupt_processing_enabled = true;
-            printf("[C0 Master] Interrupt system enabled - tiles can now send interrupts to C0\n");
-        } else {
-            printf("[C0 Master] WARNING: Failed to initialize interrupt system\n");
+        // PLIC: Interrupt system already initialized in platform_setup()
+        printf("[C0 Master] PLIC interrupt system ready (initialized in platform_setup)\n");
+        
+        // Process any pending interrupts before starting tests
+        int pending_interrupts = plic_process_hart_interrupts(0);
+        if (pending_interrupts > 0) {
+            printf("[C0 Master] Processed %d pending PLIC interrupts before tests\n", pending_interrupts);
         }
         
         // C0 master supervises the platform (with interrupts enabled)
@@ -495,32 +516,27 @@ void c0_run_test_suite(mesh_platform_t* platform)
         printf("[C0 Master] Executing HAL tests...\n");
         c0_run_hal_tests_distributed(platform);
         
-        // NEW: Process any remaining interrupts after tests
-        if (platform->interrupt_processing_enabled) {
-            printf("[C0 Master] Processing final interrupts...\n");
-            int final_interrupts = c0_process_pending_interrupts(platform);
+        // PLIC: Process any remaining interrupts after tests
+        printf("[C0 Master] Processing final PLIC interrupts...\n");
+        int final_interrupts = plic_process_hart_interrupts(0);
             if (final_interrupts > 0) {
-                printf("[C0 Master] Processed %d final interrupts\n", final_interrupts);
+            printf("[C0 Master] Processed %d final PLIC interrupts\n", final_interrupts);
             }
             
-            // Print final interrupt statistics
-            print_report_banner("FINAL INTERRUPT SYSTEM STATISTICS");
-            printf("C0 Interrupt Controller:\n");
-            printf("  - Total Interrupts Received: %lu\n", platform->interrupt_controller.interrupts_received);
-            printf("  - Total Interrupts Processed: %lu\n", platform->interrupt_controller.interrupts_processed);
-            printf("  - Total Interrupts Dropped: %lu\n", platform->interrupt_controller.interrupts_dropped);
+        // Print final PLIC statistics
+        print_report_banner("FINAL PLIC INTERRUPT STATISTICS");
+        printf("PLIC Interrupt System:\n");
+        printf("  - IRQ_MESH_NODE claimed: %lu\n", platform->plic_stats.interrupts_claimed[IRQ_MESH_NODE]);
+        printf("  - IRQ_DMA512 claimed: %lu\n", platform->plic_stats.interrupts_claimed[IRQ_DMA512]);
+        printf("  - IRQ_GPIO claimed: %lu\n", platform->plic_stats.interrupts_claimed[IRQ_GPIO]);
             
-            printf("\nTile Interrupt Statistics:\n");
-            for (int i = 1; i < platform->node_count; i++) {
-                printf("  - Tile %d: %lu interrupts sent\n", i, platform->nodes[i].interrupts_sent);
+        printf("\nHart Interrupt Statistics:\n");
+        for (int i = 0; i < 8; i++) {
+            printf("  - Hart %d: %lu interrupts handled\n", i, platform->plic_stats.hart_interrupts[i]);
             }
-            print_end_banner("END INTERRUPT STATISTICS");
+        print_end_banner("END PLIC STATISTICS");
             
-            // Disable interrupt processing and cleanup
-            platform->interrupt_processing_enabled = false;
-            c0_interrupt_controller_destroy(&platform->interrupt_controller);
-            printf("[C0 Master] Interrupt system shutdown complete\n");
-        }
+        printf("[C0 Master] PLIC interrupt system operational\n");
         
         // STEP 1: Stop tile processor threads
         platform_stop_tile_threads(platform);
@@ -763,13 +779,12 @@ int wait_for_all_tasks_completion(mesh_platform_t* p, int expected_count)
     
     while (completed < expected_count) {
         // Process any pending interrupts while waiting
-        if (p->interrupt_processing_enabled) {
-            int interrupts_this_cycle = c0_process_pending_interrupts(p);
+        // PLIC: Process any pending interrupts for C0 (hart 0)
+        int interrupts_this_cycle = plic_process_hart_interrupts(0);
             total_interrupts_processed += interrupts_this_cycle;
             
             if (interrupts_this_cycle > 0) {
                 printf("[C0 Master] Processed %d interrupts while waiting for task completion\n", interrupts_this_cycle);
-            }
         }
         
         // Check completion status
@@ -839,9 +854,10 @@ void c0_run_hal_tests_distributed(mesh_platform_t* platform)
     extern int test_c0_distribute(mesh_platform_t* p);
     extern int test_parallel_c0_access(mesh_platform_t* p);
     
-    int c0_gather_result = test_c0_gather(platform);
-    int c0_distribute_result = test_c0_distribute(platform);
-    int parallel_c0_result = test_parallel_c0_access(platform);  // Run on C0 main thread
+    // Use DMA monitoring wrapper for C0 tests that may use Tile 0 DMA
+    int c0_gather_result = c0_test_with_dma_monitoring(platform, test_c0_gather, "C0 Gather");
+    int c0_distribute_result = c0_test_with_dma_monitoring(platform, test_c0_distribute, "C0 Distribute");
+    int parallel_c0_result = test_parallel_c0_access(platform);  // This one doesn't use DMA
     
     printf("[C0 Master] C0 Master tests completed:\n");
     printf("[C0 Master] - C0 Gather: %s\n", c0_gather_result ? "PASS" : "FAIL");
@@ -900,6 +916,13 @@ void c0_run_hal_tests_distributed(mesh_platform_t* platform)
     wait_for_all_tasks_completion(platform, num_hal_tests);
     main_thread_print("[C0 Master] All parallel HAL test tasks completed!\n");
     
+    // STEP 3: Run comprehensive DMAC512 HAL/Driver tests on main thread
+    main_thread_print("\n");
+    print_section_banner("DMAC512 COMPREHENSIVE HAL/DRIVER TESTS");
+    
+    extern int run_dmac512_comprehensive_tests(mesh_platform_t* platform);
+    int dmac512_comprehensive_result = run_dmac512_comprehensive_tests(platform);
+    
     // Print results
     main_thread_print("\n");
     print_section_banner("Test Results Summary");
@@ -914,8 +937,11 @@ void c0_run_hal_tests_distributed(mesh_platform_t* platform)
         main_thread_print("[C0 Master] - %s: %s\n", hal_tests[i].name, hal_tests[i].result ? "PASS" : "FAIL");
     }
     
-    int total_passed = c0_gather_result + c0_distribute_result + parallel_c0_result + hal_passed;
-    int total_tests = 3 + num_hal_tests;
+    main_thread_print("[C0 Master] Comprehensive DMAC512 HAL/Driver Tests:\n");
+    main_thread_print("[C0 Master] - DMAC512 Comprehensive Test Suite: %s\n", dmac512_comprehensive_result ? "PASS" : "FAIL");
+    
+    int total_passed = c0_gather_result + c0_distribute_result + parallel_c0_result + hal_passed + dmac512_comprehensive_result;
+    int total_tests = 3 + num_hal_tests + 1;  // +1 for comprehensive DMAC512 tests
     main_thread_print("\033[1m[C0 Master] Overall Summary: %d/%d tests passed\033[0m\n", total_passed, total_tests);
     print_section_banner("Test Execution Complete");
     
@@ -1098,6 +1124,10 @@ int tile_complete_task(mesh_platform_t* p, tile_core_t* tile, task_t* task)
 // ============================================================================
 
 // Initialize C0 interrupt controller
+// LEGACY INTERRUPT FUNCTIONS - REPLACED BY PLIC
+// These functions are commented out as they're replaced by PLIC device/hart model
+
+#if 0  // Legacy interrupt system - disabled
 int c0_interrupt_controller_init(c0_interrupt_controller_t* ctrl) {
     if (!ctrl) return -1;
     
@@ -1363,3 +1393,4 @@ int default_shutdown_handler(interrupt_request_t* irq, void* platform_context) {
     // Could trigger graceful tile shutdown
     return 0;
 }
+#endif  // End legacy interrupt system

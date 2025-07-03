@@ -1,8 +1,8 @@
 CC      := gcc
-CFLAGS  := -std=c11 -Wall -Wextra -O2 -pthread -ldl -Itile -I. -Imesh_noc -Idmem -I..
+CFLAGS  := -std=c11 -Wall -Wextra -O2 -pthread -ldl -Itile -I. -Imesh_noc -Idmem -I.. -Iplatform_init -Ihal/INT -Ihal/dma512
 
-# Gather all C sources for the platform
-SRCS := $(shell find . -name '*.c')
+# Gather all C sources for the platform (including DMAC512 and PLIC HAL)
+SRCS := $(shell find . -name '*.c' | grep -v -E 'hal/INT/(aradlm|printf)\.c')
 OBJS := $(SRCS:.c=.o)
 
 TARGET := soc_top

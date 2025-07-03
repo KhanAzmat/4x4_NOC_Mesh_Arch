@@ -6,106 +6,62 @@
 #include <stdbool.h>
 #include <time.h>
 
+// HAL/Driver includes for DMAC512 and PLIC integration
+#include "hal_dmac512.h"
+#include "plic.h"
+
 // ============================================================================
-// INTERRUPT SYSTEM INTEGRATION
+// PLIC INTERRUPT SYSTEM INTEGRATION
 // ============================================================================
 
-// Interrupt types - integrated into platform
-typedef enum {
-    IRQ_TYPE_TASK_COMPLETE = 1,    // Tile finished task
-    IRQ_TYPE_ERROR = 2,            // Tile encountered error  
-    IRQ_TYPE_DMA_COMPLETE = 3,     // DMA transfer finished
-    IRQ_TYPE_NOC_CONGESTION = 4,   // NoC traffic congestion
-    IRQ_TYPE_RESOURCE_REQUEST = 5,  // Tile needs resource
-    IRQ_TYPE_CUSTOM = 6,           // Custom application IRQ
-    IRQ_TYPE_TIMER = 7,            // Timer expiration
-    IRQ_TYPE_SHUTDOWN = 8,         // Tile requesting shutdown
-    IRQ_TYPE_MAX = 8
-} interrupt_type_t;
+// Platform uses PLIC HAL's irq_source_id_t directly
+// Map platform concepts to PLIC interrupt sources:
+// - Task completion → IRQ_MESH_NODE
+// - DMA completion → IRQ_DMA512  
+// - Errors → IRQ_GPIO (general purpose)
+// - Timers → IRQ_PIT (periodic interrupt timer)
+// - Other platform events → other PLIC sources
 
-// Interrupt priority levels
-typedef enum {
-    IRQ_PRIORITY_CRITICAL = 0,     // Errors, shutdown
-    IRQ_PRIORITY_HIGH = 1,         // DMA complete, resource requests  
-    IRQ_PRIORITY_NORMAL = 2,       // Task complete
-    IRQ_PRIORITY_LOW = 3           // Congestion, timers
-} interrupt_priority_t;
-
-// Interrupt request structure
+// Simple interrupt statistics for monitoring (optional)
 typedef struct {
-    int source_tile;               // Which tile sent the IRQ (1-7, or 0 for C0)
-    interrupt_type_t type;         // Type of interrupt
-    interrupt_priority_t priority; // Priority level
-    uint64_t timestamp;            // When IRQ was generated (nanoseconds)
-    uint32_t data;                 // Additional IRQ data (task_id, error_code, etc.)
-    char message[64];              // Optional descriptive message
-    bool valid;                    // Flag to indicate if IRQ is valid
-} interrupt_request_t;
+    uint64_t interrupts_claimed[IRQ_FX3 + 1];     // Per IRQ source claim count
+    uint64_t interrupts_completed[IRQ_FX3 + 1];   // Per IRQ source completion count
+    uint64_t hart_interrupts[8];                  // Per hart interrupt count (8 tiles)
+} plic_interrupt_stats_t;
 
-// Compact interrupt packet for NoC transmission (fits in 64-byte payload)
-typedef struct __attribute__((packed)) {
-    uint32_t source_tile;          // 4 bytes
-    uint32_t type;                 // 4 bytes 
-    uint32_t priority;             // 4 bytes
-    uint64_t timestamp;            // 8 bytes
-    uint32_t data;                 // 4 bytes
-    uint32_t valid;                // 4 bytes 
-    char message[36];              // 36 bytes = 64 bytes total
-} compact_interrupt_packet_t;
-
-// Interrupt handler function pointer
-typedef int (*interrupt_handler_t)(interrupt_request_t* irq, void* platform_context);
-
-// C0 Master interrupt controller (use NUM_TILES for consistency)
-#define MAX_PENDING_IRQS 64
-typedef struct {
-    interrupt_request_t irq_queue[MAX_PENDING_IRQS];
-    int head, tail, count;
-    pthread_mutex_t irq_lock;
-    pthread_cond_t irq_available;
-    
-    // ISR handlers for different interrupt types
-    interrupt_handler_t isr_handlers[IRQ_TYPE_MAX + 1];
-    
-    // Statistics
-    uint64_t interrupts_received;
-    uint64_t interrupts_processed;
-    uint64_t interrupts_dropped;
-    
-    // Processing control
-    volatile bool processing_enabled;
-} c0_interrupt_controller_t;
-
-// Helper functions for interrupts
-static inline interrupt_priority_t get_irq_priority(interrupt_type_t type) {
-    switch (type) {
-        case IRQ_TYPE_ERROR:
-        case IRQ_TYPE_SHUTDOWN:
-            return IRQ_PRIORITY_CRITICAL;
-        case IRQ_TYPE_DMA_COMPLETE:
-        case IRQ_TYPE_RESOURCE_REQUEST:
-            return IRQ_PRIORITY_HIGH;
-        case IRQ_TYPE_TASK_COMPLETE:
-        case IRQ_TYPE_CUSTOM:
-            return IRQ_PRIORITY_NORMAL;
-        case IRQ_TYPE_NOC_CONGESTION:
-        case IRQ_TYPE_TIMER:
-            return IRQ_PRIORITY_LOW;
+// Helper functions for PLIC integration
+static inline uint8_t get_plic_priority(irq_source_id_t irq_id) {
+    switch (irq_id) {
+        case IRQ_GPIO:           // Errors - highest priority
+            return 7;
+        case IRQ_DMA512:         // DMA completion - high priority
+        case IRQ_DMA:
+            return 5;
+        case IRQ_MESH_NODE:      // Task completion - normal priority
+            return 3;
+        case IRQ_PIT:            // Timer - low priority
+            return 1;
         default:
-            return IRQ_PRIORITY_NORMAL;
+            return 2;            // Default priority
     }
 }
 
-static inline const char* get_irq_type_name(interrupt_type_t type) {
-    switch (type) {
-        case IRQ_TYPE_TASK_COMPLETE: return "TASK_COMPLETE";
-        case IRQ_TYPE_ERROR: return "ERROR";
-        case IRQ_TYPE_DMA_COMPLETE: return "DMA_COMPLETE";
-        case IRQ_TYPE_NOC_CONGESTION: return "NOC_CONGESTION";
-        case IRQ_TYPE_RESOURCE_REQUEST: return "RESOURCE_REQUEST";
-        case IRQ_TYPE_CUSTOM: return "CUSTOM";
-        case IRQ_TYPE_TIMER: return "TIMER";
-        case IRQ_TYPE_SHUTDOWN: return "SHUTDOWN";
+static inline const char* get_plic_irq_name(irq_source_id_t irq_id) {
+    switch (irq_id) {
+        case IRQ_WDT: return "WDT";
+        case IRQ_RTC_PERIOD: return "RTC_PERIOD";
+        case IRQ_RTC_ALARM: return "RTC_ALARM";
+        case IRQ_PIT: return "PIT";
+        case IRQ_SPI1: return "SPI1";
+        case IRQ_SPI2: return "SPI2";
+        case IRQ_I2C: return "I2C";
+        case IRQ_GPIO: return "GPIO";
+        case IRQ_UART1: return "UART1";
+        case IRQ_USB_HOST: return "USB_HOST";
+        case IRQ_DMA: return "DMA";
+        case IRQ_DMA512: return "DMA512";
+        case IRQ_MESH_NODE: return "MESH_NODE";
+        case IRQ_FX3: return "FX3";
         default: return "UNKNOWN";
     }
 }
@@ -190,6 +146,18 @@ typedef struct {
     uint8_t* dlm1_512_ptr;
     uint8_t* dma_regs_ptr;
     
+    // DMAC512 HAL integration
+    DMAC512_RegDef* dmac512_regs;      // Points to DMAC512 registers in dma_regs_ptr
+    DMAC512_HandleTypeDef dmac512_handle; // HAL handle for this tile
+    volatile bool dmac512_busy;                // Transfer in progress flag
+    uint32_t dmac512_transfer_id;             // Current transfer ID for interrupts
+    
+    // PLIC HAL integration - uses HAL's shared PLIC instances
+    uint32_t plic_hart_id;             // Hart ID for this tile (maps to tile ID) 
+    uint32_t plic_target_id;           // Target ID within PLIC for this hart
+    uint8_t plic_instance;             // Which PLIC instance (0, 1, or 2)
+    // NOTE: PLIC registers accessed via HAL's global PLIC_INST[] array, not per-tile pointers
+    
     // STEP 1: Basic threading infrastructure
     pthread_t thread_id;
     volatile bool running;
@@ -241,9 +209,8 @@ typedef struct {
     volatile int active_tasks;
     volatile int completed_tasks;
     
-    // NEW: Integrated interrupt system
-    c0_interrupt_controller_t interrupt_controller;
-    volatile bool interrupt_processing_enabled;
+    // PLIC interrupt statistics (optional monitoring)
+    plic_interrupt_stats_t plic_stats;
     
 } mesh_platform_t;
 
@@ -287,31 +254,28 @@ int wait_for_all_tasks_completion(mesh_platform_t* p, int expected_count);
 void c0_run_hal_tests_distributed(mesh_platform_t* platform);
 
 // ============================================================================
-// NEW: INTERRUPT SYSTEM FUNCTION DECLARATIONS
+// PLIC DEVICE AND HART INTERRUPT FUNCTIONS
 // ============================================================================
 
-// C0 Master interrupt controller functions
-int c0_interrupt_controller_init(c0_interrupt_controller_t* ctrl);
-int c0_interrupt_controller_destroy(c0_interrupt_controller_t* ctrl);
-int c0_process_pending_interrupts(mesh_platform_t* p);
-int c0_register_interrupt_handler(mesh_platform_t* p, interrupt_type_t type, interrupt_handler_t handler);
+// Platform PLIC support functions
+int platform_init_plic_stats(mesh_platform_t* p);
 
-// Tile interrupt functions
-int tile_send_interrupt_to_c0(mesh_platform_t* p, int tile_id, interrupt_type_t type, 
-                              uint32_t data, const char* message);
-int tile_signal_task_complete(mesh_platform_t* p, int tile_id, uint32_t task_id);
-int tile_signal_error(mesh_platform_t* p, int tile_id, uint32_t error_code, const char* error_msg);
-int tile_signal_dma_complete(mesh_platform_t* p, int tile_id, uint32_t transfer_id);
+// Device-side interrupt sources (hardware perspective)
+// These represent peripheral devices asserting interrupt lines to PLIC
+void device_task_completion_interrupt(uint32_t completing_hart_id, uint32_t task_id);
+void device_dma_completion_interrupt(uint32_t source_hart_id, uint32_t transfer_id);
+void device_error_interrupt(uint32_t source_hart_id, uint32_t error_code);
+void device_timer_interrupt(uint32_t timer_id);
+void device_resource_request_interrupt(uint32_t requesting_hart_id, uint32_t resource_id);
+void device_shutdown_request_interrupt(uint32_t requesting_hart_id);
 
-// NoC interrupt packet functions
-int noc_send_interrupt_packet(int src_tile, int dst_tile, interrupt_request_t* irq);
-int noc_handle_received_interrupt(mesh_platform_t* p, interrupt_request_t* irq);
+// Hart-side interrupt processing (CPU perspective)
+// These handle interrupts delivered by PLIC to hart cores
+int plic_process_hart_interrupts(uint32_t hart_id);
 
-// Default interrupt handlers
-int default_task_complete_handler(interrupt_request_t* irq, void* platform_context);
-int default_error_handler(interrupt_request_t* irq, void* platform_context);
-int default_dma_complete_handler(interrupt_request_t* irq, void* platform_context);
-int default_resource_request_handler(interrupt_request_t* irq, void* platform_context);
-int default_shutdown_handler(interrupt_request_t* irq, void* platform_context);
+// Legacy functions for compatibility (use device functions instead)
+int platform_trigger_task_complete(mesh_platform_t* p, uint32_t source_hart_id, uint32_t task_id);
+int platform_trigger_dma_complete(mesh_platform_t* p, uint32_t source_hart_id, uint32_t transfer_id);
+int platform_trigger_error(mesh_platform_t* p, uint32_t source_hart_id, uint32_t error_code);
 
 #endif
