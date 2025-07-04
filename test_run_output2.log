@@ -1,0 +1,1682 @@
+[PLIC-HAL] Allocated PLIC registers at 0x41000030000000 (size 4194304) -> ptr 0x724fd9e37010
+[PLIC-HAL] Allocated PLIC registers at 0x41001130000000 (size 4194304) -> ptr 0x724fd9a36010
+[PLIC-HAL] Allocated PLIC registers at 0x41000030400000 (size 4194304) -> ptr 0x724fd9635010
+[PLIC-HAL] Allocated PLIC registers at 0x41001130400000 (size 4194304) -> ptr 0x724fd9234010
+[PLIC-HAL] Allocated PLIC registers at 0x41000030800000 (size 4194304) -> ptr 0x724fd8e33010
+[PLIC-HAL] Allocated PLIC registers at 0x41001130800000 (size 4194304) -> ptr 0x724fd8a32010
+[PLIC-HAL] Initializing PLIC instances...
+[PLIC-HAL] Calling plic_init_for_this_hart(0)
+[PLIC-HAL] Calling plic_init_for_this_hart(1)
+[PLIC-HAL] Calling plic_init_for_this_hart(2)
+[PLIC-HAL] Calling plic_init_for_this_hart(3)
+[PLIC-HAL] Calling plic_init_for_this_hart(4)
+[PLIC-HAL] Calling plic_init_for_this_hart(5)
+[PLIC-HAL] Calling plic_init_for_this_hart(6)
+[PLIC-HAL] Calling plic_init_for_this_hart(7)
+[PLIC-HAL] Converting PLIC_INST hardware addresses to simulation pointers...
+[PLIC-HAL]   PLIC_INST[0]: 0x41001130000000 -> (nil) (ERROR)
+[PLIC-HAL]   Manual override: PLIC_INST[0] -> 0x724fd9a36010
+[PLIC-HAL]   PLIC_INST[1]: 0x41001130400000 -> (nil) (ERROR)
+[PLIC-HAL]   Manual override: PLIC_INST[1] -> 0x724fd9234010
+[PLIC-HAL]   PLIC_INST[2]: 0x41001130800000 -> (nil) (ERROR)
+[PLIC-HAL]   Manual override: PLIC_INST[2] -> 0x724fd8a32010
+[Platform] Initialized PLIC interrupt statistics
+[PLIC-HAL] Initialized PLIC instances for harts 0-7
+[PLIC-HAL] PLIC_0: harts 0-1, PLIC_1: harts 2-7, PLIC_2: unused
+[PLIC-HAL] Enabled interrupts: MESH_NODE, DMA512, GPIO, PIT, SPI1, RTC_ALARM for all harts
+[Platform Setup] DMAC512 + PLIC Integration Complete
+  - 8 tiles initialized with DMAC512 HAL handles
+  - 8 tiles initialized with PLIC HAL (instances 0,1,2)
+  - DMAC512 registers mapped to memory addresses
+  - PLIC interrupts configured using original HAL functions
+
+╔═══════════════════════════════════════════════════════════════════════════════════╗
+║ [1;34mMesh‑NoC HAL Validation[0m                                                         ║
+╚═══════════════════════════════════════════════════════════════════════════════════╝
+
+[C0 Master] Starting tile processor threads...
+[Task Queue] Initialized with 64 task slots
+[C0 Master] Creating processor thread for tile 1...
+[C0 Master] Creating processor thread for tile 2...
+[Tile 1] Starting processor thread ...
+[C0 Master] Creating processor thread for tile 3...
+[Tile 1] Processor thread initialized with interrupt support
+[C0 Master] Creating processor thread for tile 4...
+[Tile 2] Starting processor thread ...
+[Tile 2] Processor thread initialized with interrupt support
+[C0 Master] Creating processor thread for tile 5...
+[C0 Master] Creating processor thread for tile 6...
+[C0 Master] Creating processor thread for tile 7...
+[C0 Master] Waiting for tile threads to initialize...
+[Tile 6] Starting processor thread ...
+[Tile 6] Processor thread initialized with interrupt support
+[Tile 5] Starting processor thread ...
+[Tile 5] Processor thread initialized with interrupt support
+[Tile 7] Starting processor thread ...
+[Tile 7] Processor thread initialized with interrupt support
+[Tile 3] Starting processor thread ...
+[Tile 3] Processor thread initialized with interrupt support
+[Tile 4] Starting processor thread ...
+[Tile 4] Processor thread initialized with interrupt support
+[C0 Master] All tile threads initialized successfully!
+[C0 Master] Task coordination system ready
+[C0 Master] Platform running with tile processors and task system!
+[C0 Master] PLIC interrupt system ready (initialized in platform_setup)
+[C0 Master] Supervising tile processors with interrupt handling...
+[C0 Master] Supervision cycle 1: 7 processor tiles active, 7 idle, 0 tasks completed, 0 interrupts sent
+[C0 Master] PLIC statistics available in platform.plic_stats
+[C0 Master] Supervision cycle 2: 7 processor tiles active, 7 idle, 0 tasks completed, 0 interrupts sent
+[C0 Master] PLIC statistics available in platform.plic_stats
+[C0 Master] Supervision cycle 3: 7 processor tiles active, 7 idle, 0 tasks completed, 0 interrupts sent
+[C0 Master] PLIC statistics available in platform.plic_stats
+[C0 Master] Supervision cycle 4: 7 processor tiles active, 7 idle, 0 tasks completed, 0 interrupts sent
+[C0 Master] PLIC statistics available in platform.plic_stats
+[C0 Master] Supervision cycle 5: 7 processor tiles active, 7 idle, 0 tasks completed, 0 interrupts sent
+[C0 Master] PLIC statistics available in platform.plic_stats
+[C0 Master] Supervision complete
+[C0 Master] Executing HAL tests...
+
+╔═══════════════════════════════════════════════════════════════════════════════════╗
+║ [1;36mRunning Tests: C0 Master + Distributed HAL[0m                                        ║
+╚═══════════════════════════════════════════════════════════════════════════════════╝
+
+[C0 Master] Executing C0 Master coordination tests...
+[C0 Master] Executing C0 Gather with DMA monitoring...
+[C0 Master] Starting C0 Gather...
+
+╔═══════════════════════════════════════════════════════════════════════════════════╗
+║ [1;36mC0-Gather(collect 8 DMEM to a continue DLM1)[0m                                      ║
+╚═══════════════════════════════════════════════════════════════════════════════════╝
+
+
+┌─────────────────────────────────────────────────────────────────────────────────────┐
+│ [1;33m1. HAL transfer: dmem_0(0x10000000) -> node_0.dlm1+0(0x8000)[0m                        │
+└─────────────────────────────────────────────────────────────────────────────────────┘
+[SRC-BEFORE] 0x101112131415161718191A1B1C1D1E1F202122232425262728292A2B2C2D2E2F ...
+[DST-BEFORE] 0x0000000000000000000000000000000000000000000000000000000000000000 ...
+[HAL-ENTRY] hal_dma_remote_transfer called by test 'DMA Remote Transfer Test'
+[DRIVER-CALL] DMA Remote Transfer → DMAC512 HAL driver
+[DMAC512-HAL] Using Tile 0 DMAC512 for remote transfer
+[DMAC512-HAL] Tile 0: Configuring remote transfer (src=0x10000000, dst=0x8000, size=256)
+[DMAC512-HAL] Tile 0: Starting remote transfer...
+[DMAC512-POST-HAL] Tile 0: HAL enabled DMA, executing transfer immediately
+[DMAC512-HW-SYNC] Tile 0: DMA enable detected, executing transfer synchronously
+[DMAC512-HW-SYNC] Tile 0: Transfer 0x10000000 -> 0x8000 (size=256)
+[DMAC512-HW-SYNC] Tile 0: Memory copy completed successfully
+[Device-DMAC512] Hart 0 completed DMA transfer 256 -> asserting IRQ_DMA512
+[DMAC512-HW-SYNC] Tile 0: DMA transfer completed synchronously, enable bit cleared
+[DMAC512-HAL] Tile 0: Remote transfer completed successfully
+[HAL-EXIT] hal_dma_remote_transfer completed with result: 256
+[DST-AFTER ] 0x101112131415161718191A1B1C1D1E1F202122232425262728292A2B2C2D2E2F ...
+HAL result: 256
+
+
+┌─────────────────────────────────────────────────────────────────────────────────────┐
+│ [1;33m2. HAL transfer: dmem_1(0x10400000) -> node_0.dlm1+256(0x8100)[0m                      │
+└─────────────────────────────────────────────────────────────────────────────────────┘
+[SRC-BEFORE] 0x1112131415161718191A1B1C1D1E1F202122232425262728292A2B2C2D2E2F30 ...
+[DST-BEFORE] 0x0000000000000000000000000000000000000000000000000000000000000000 ...
+[HAL-ENTRY] hal_dma_remote_transfer called by test 'DMA Remote Transfer Test'
+[DRIVER-CALL] DMA Remote Transfer → DMAC512 HAL driver
+[DMAC512-HAL] Using Tile 0 DMAC512 for remote transfer
+[DMAC512-HAL] Tile 0: Configuring remote transfer (src=0x10400000, dst=0x8100, size=256)
+[DMAC512-HAL] Tile 0: Starting remote transfer...
+[DMAC512-POST-HAL] Tile 0: HAL enabled DMA, executing transfer immediately
+[DMAC512-HW-SYNC] Tile 0: DMA enable detected, executing transfer synchronously
+[DMAC512-HW-SYNC] Tile 0: Transfer 0x10400000 -> 0x8100 (size=256)
+[DMAC512-HW-SYNC] Tile 0: Memory copy completed successfully
+[Device-DMAC512] Hart 0 completed DMA transfer 256 -> asserting IRQ_DMA512
+[DMAC512-HW-SYNC] Tile 0: DMA transfer completed synchronously, enable bit cleared
+[DMAC512-HAL] Tile 0: Remote transfer completed successfully
+[HAL-EXIT] hal_dma_remote_transfer completed with result: 256
+[DST-AFTER ] 0x1112131415161718191A1B1C1D1E1F202122232425262728292A2B2C2D2E2F30 ...
+HAL result: 256
+
+
+┌─────────────────────────────────────────────────────────────────────────────────────┐
+│ [1;33m3. HAL transfer: dmem_2(0x10800000) -> node_0.dlm1+512(0x8200)[0m                      │
+└─────────────────────────────────────────────────────────────────────────────────────┘
+[SRC-BEFORE] 0x12131415161718191A1B1C1D1E1F202122232425262728292A2B2C2D2E2F3031 ...
+[DST-BEFORE] 0x0000000000000000000000000000000000000000000000000000000000000000 ...
+[HAL-ENTRY] hal_dma_remote_transfer called by test 'DMA Remote Transfer Test'
+[DRIVER-CALL] DMA Remote Transfer → DMAC512 HAL driver
+[DMAC512-HAL] Using Tile 0 DMAC512 for remote transfer
+[DMAC512-HAL] Tile 0: Configuring remote transfer (src=0x10800000, dst=0x8200, size=256)
+[DMAC512-HAL] Tile 0: Starting remote transfer...
+[DMAC512-POST-HAL] Tile 0: HAL enabled DMA, executing transfer immediately
+[DMAC512-HW-SYNC] Tile 0: DMA enable detected, executing transfer synchronously
+[DMAC512-HW-SYNC] Tile 0: Transfer 0x10800000 -> 0x8200 (size=256)
+[DMAC512-HW-SYNC] Tile 0: Memory copy completed successfully
+[Device-DMAC512] Hart 0 completed DMA transfer 256 -> asserting IRQ_DMA512
+[DMAC512-HW-SYNC] Tile 0: DMA transfer completed synchronously, enable bit cleared
+[DMAC512-HAL] Tile 0: Remote transfer completed successfully
+[HAL-EXIT] hal_dma_remote_transfer completed with result: 256
+[DST-AFTER ] 0x12131415161718191A1B1C1D1E1F202122232425262728292A2B2C2D2E2F3031 ...
+HAL result: 256
+
+
+┌─────────────────────────────────────────────────────────────────────────────────────┐
+│ [1;33m4. HAL transfer: dmem_3(0x10c00000) -> node_0.dlm1+768(0x8300)[0m                      │
+└─────────────────────────────────────────────────────────────────────────────────────┘
+[SRC-BEFORE] 0x131415161718191A1B1C1D1E1F202122232425262728292A2B2C2D2E2F303132 ...
+[DST-BEFORE] 0x0000000000000000000000000000000000000000000000000000000000000000 ...
+[HAL-ENTRY] hal_dma_remote_transfer called by test 'DMA Remote Transfer Test'
+[DRIVER-CALL] DMA Remote Transfer → DMAC512 HAL driver
+[DMAC512-HAL] Using Tile 0 DMAC512 for remote transfer
+[DMAC512-HAL] Tile 0: Configuring remote transfer (src=0x10C00000, dst=0x8300, size=256)
+[DMAC512-HAL] Tile 0: Starting remote transfer...
+[DMAC512-POST-HAL] Tile 0: HAL enabled DMA, executing transfer immediately
+[DMAC512-HW-SYNC] Tile 0: DMA enable detected, executing transfer synchronously
+[DMAC512-HW-SYNC] Tile 0: Transfer 0x10c00000 -> 0x8300 (size=256)
+[DMAC512-HW-SYNC] Tile 0: Memory copy completed successfully
+[Device-DMAC512] Hart 0 completed DMA transfer 256 -> asserting IRQ_DMA512
+[DMAC512-HW-SYNC] Tile 0: DMA transfer completed synchronously, enable bit cleared
+[DMAC512-HAL] Tile 0: Remote transfer completed successfully
+[HAL-EXIT] hal_dma_remote_transfer completed with result: 256
+[DST-AFTER ] 0x131415161718191A1B1C1D1E1F202122232425262728292A2B2C2D2E2F303132 ...
+HAL result: 256
+
+
+┌─────────────────────────────────────────────────────────────────────────────────────┐
+│ [1;33m5. HAL transfer: dmem_4(0x20000000) -> node_0.dlm1+1024(0x8400)[0m                     │
+└─────────────────────────────────────────────────────────────────────────────────────┘
+[SRC-BEFORE] 0x1415161718191A1B1C1D1E1F202122232425262728292A2B2C2D2E2F30313233 ...
+[DST-BEFORE] 0x0000000000000000000000000000000000000000000000000000000000000000 ...
+[HAL-ENTRY] hal_dma_remote_transfer called by test 'DMA Remote Transfer Test'
+[DRIVER-CALL] DMA Remote Transfer → DMAC512 HAL driver
+[DMAC512-HAL] Using Tile 0 DMAC512 for remote transfer
+[DMAC512-HAL] Tile 0: Configuring remote transfer (src=0x20000000, dst=0x8400, size=256)
+[DMAC512-HAL] Tile 0: Starting remote transfer...
+[DMAC512-POST-HAL] Tile 0: HAL enabled DMA, executing transfer immediately
+[DMAC512-HW-SYNC] Tile 0: DMA enable detected, executing transfer synchronously
+[DMAC512-HW-SYNC] Tile 0: Transfer 0x20000000 -> 0x8400 (size=256)
+[DMAC512-HW-SYNC] Tile 0: Memory copy completed successfully
+[Device-DMAC512] Hart 0 completed DMA transfer 256 -> asserting IRQ_DMA512
+[DMAC512-HW-SYNC] Tile 0: DMA transfer completed synchronously, enable bit cleared
+[DMAC512-HAL] Tile 0: Remote transfer completed successfully
+[HAL-EXIT] hal_dma_remote_transfer completed with result: 256
+[DST-AFTER ] 0x1415161718191A1B1C1D1E1F202122232425262728292A2B2C2D2E2F30313233 ...
+HAL result: 256
+
+
+┌─────────────────────────────────────────────────────────────────────────────────────┐
+│ [1;33m6. HAL transfer: dmem_5(0x20400000) -> node_0.dlm1+1280(0x8500)[0m                     │
+└─────────────────────────────────────────────────────────────────────────────────────┘
+[SRC-BEFORE] 0x15161718191A1B1C1D1E1F202122232425262728292A2B2C2D2E2F3031323334 ...
+[DST-BEFORE] 0x0000000000000000000000000000000000000000000000000000000000000000 ...
+[HAL-ENTRY] hal_dma_remote_transfer called by test 'DMA Remote Transfer Test'
+[DRIVER-CALL] DMA Remote Transfer → DMAC512 HAL driver
+[DMAC512-HAL] Using Tile 0 DMAC512 for remote transfer
+[DMAC512-HAL] Tile 0: Configuring remote transfer (src=0x20400000, dst=0x8500, size=256)
+[DMAC512-HAL] Tile 0: Starting remote transfer...
+[DMAC512-POST-HAL] Tile 0: HAL enabled DMA, executing transfer immediately
+[DMAC512-HW-SYNC] Tile 0: DMA enable detected, executing transfer synchronously
+[DMAC512-HW-SYNC] Tile 0: Transfer 0x20400000 -> 0x8500 (size=256)
+[DMAC512-HW-SYNC] Tile 0: Memory copy completed successfully
+[Device-DMAC512] Hart 0 completed DMA transfer 256 -> asserting IRQ_DMA512
+[DMAC512-HW-SYNC] Tile 0: DMA transfer completed synchronously, enable bit cleared
+[DMAC512-HAL] Tile 0: Remote transfer completed successfully
+[HAL-EXIT] hal_dma_remote_transfer completed with result: 256
+[DST-AFTER ] 0x15161718191A1B1C1D1E1F202122232425262728292A2B2C2D2E2F3031323334 ...
+HAL result: 256
+
+
+┌─────────────────────────────────────────────────────────────────────────────────────┐
+│ [1;33m7. HAL transfer: dmem_6(0x20800000) -> node_0.dlm1+1536(0x8600)[0m                     │
+└─────────────────────────────────────────────────────────────────────────────────────┘
+[SRC-BEFORE] 0x161718191A1B1C1D1E1F202122232425262728292A2B2C2D2E2F303132333435 ...
+[DST-BEFORE] 0x0000000000000000000000000000000000000000000000000000000000000000 ...
+[HAL-ENTRY] hal_dma_remote_transfer called by test 'DMA Remote Transfer Test'
+[DRIVER-CALL] DMA Remote Transfer → DMAC512 HAL driver
+[DMAC512-HAL] Using Tile 0 DMAC512 for remote transfer
+[DMAC512-HAL] Tile 0: Configuring remote transfer (src=0x20800000, dst=0x8600, size=256)
+[DMAC512-HAL] Tile 0: Starting remote transfer...
+[DMAC512-POST-HAL] Tile 0: HAL enabled DMA, executing transfer immediately
+[DMAC512-HW-SYNC] Tile 0: DMA enable detected, executing transfer synchronously
+[DMAC512-HW-SYNC] Tile 0: Transfer 0x20800000 -> 0x8600 (size=256)
+[DMAC512-HW-SYNC] Tile 0: Memory copy completed successfully
+[Device-DMAC512] Hart 0 completed DMA transfer 256 -> asserting IRQ_DMA512
+[DMAC512-HW-SYNC] Tile 0: DMA transfer completed synchronously, enable bit cleared
+[DMAC512-HAL] Tile 0: Remote transfer completed successfully
+[HAL-EXIT] hal_dma_remote_transfer completed with result: 256
+[DST-AFTER ] 0x161718191A1B1C1D1E1F202122232425262728292A2B2C2D2E2F303132333435 ...
+HAL result: 256
+
+
+┌─────────────────────────────────────────────────────────────────────────────────────┐
+│ [1;33m8. HAL transfer: dmem_7(0x20c00000) -> node_0.dlm1+1792(0x8700)[0m                     │
+└─────────────────────────────────────────────────────────────────────────────────────┘
+[SRC-BEFORE] 0x1718191A1B1C1D1E1F202122232425262728292A2B2C2D2E2F30313233343536 ...
+[DST-BEFORE] 0x0000000000000000000000000000000000000000000000000000000000000000 ...
+[HAL-ENTRY] hal_dma_remote_transfer called by test 'DMA Remote Transfer Test'
+[DRIVER-CALL] DMA Remote Transfer → DMAC512 HAL driver
+[DMAC512-HAL] Using Tile 0 DMAC512 for remote transfer
+[DMAC512-HAL] Tile 0: Configuring remote transfer (src=0x20C00000, dst=0x8700, size=256)
+[DMAC512-HAL] Tile 0: Starting remote transfer...
+[DMAC512-POST-HAL] Tile 0: HAL enabled DMA, executing transfer immediately
+[DMAC512-HW-SYNC] Tile 0: DMA enable detected, executing transfer synchronously
+[DMAC512-HW-SYNC] Tile 0: Transfer 0x20c00000 -> 0x8700 (size=256)
+[DMAC512-HW-SYNC] Tile 0: Memory copy completed successfully
+[Device-DMAC512] Hart 0 completed DMA transfer 256 -> asserting IRQ_DMA512
+[DMAC512-HW-SYNC] Tile 0: DMA transfer completed synchronously, enable bit cleared
+[DMAC512-HAL] Tile 0: Remote transfer completed successfully
+[HAL-EXIT] hal_dma_remote_transfer completed with result: 256
+[DST-AFTER ] 0x1718191A1B1C1D1E1F202122232425262728292A2B2C2D2E2F30313233343536 ...
+HAL result: 256
+
+[1m[C0-Gather] Summary: 8/8 passed[0m
+
+[C0 Master] Checking for pending DMA transfers on Tile 0...
+[Hart-1-PLIC] Claimed interrupt DMA512 (11)
+[Hart-1-Handler] Processing DMA completion interrupt
+[Hart-1-PLIC] Completed interrupt DMA512 (11)
+[Tile 1] Processed 1 PLIC interrupts
+[C0 Master] C0 Gather completed. DMA transfers detected: 0, Result: PASS
+[C0 Master] Executing C0 Distribute with DMA monitoring...
+[C0 Master] Starting C0 Distribute...
+
+╔═══════════════════════════════════════════════════════════════════════════════════╗
+║ [1;36mC0-Distribute(same SRC --> diff. Dist)[0m                                            ║
+╚═══════════════════════════════════════════════════════════════════════════════════╝
+
+
+┌─────────────────────────────────────────────────────────────────────────────────────┐
+│ [1;33m1. HAL transfer: node_0.dlm1(0x8000) -> dmem_0(0x10000000), size: 256[0m               │
+└─────────────────────────────────────────────────────────────────────────────────────┘
+[SRC-BEFORE] 0xE0E1E2E3E4E5E6E7E8E9EAEBECEDEEEFF0F1F2F3F4F5F6F7F8F9FAFBFCFDFEFF ...
+[HAL-ENTRY] hal_dma_remote_transfer called by test 'DMA Remote Transfer Test'
+[DRIVER-CALL] DMA Remote Transfer → DMAC512 HAL driver
+[DMAC512-HAL] Using Tile 0 DMAC512 for remote transfer
+[DMAC512-HAL] Tile 0: Configuring remote transfer (src=0x8000, dst=0x10000000, size=256)
+[DMAC512-HAL] Tile 0: Starting remote transfer...
+[DMAC512-POST-HAL] Tile 0: HAL enabled DMA, executing transfer immediately
+[DMAC512-HW-SYNC] Tile 0: DMA enable detected, executing transfer synchronously
+[DMAC512-HW-SYNC] Tile 0: Transfer 0x8000 -> 0x10000000 (size=256)
+[DMAC512-HW-SYNC] Tile 0: Memory copy completed successfully
+[Device-DMAC512] Hart 0 completed DMA transfer 256 -> asserting IRQ_DMA512
+[DMAC512-HW-SYNC] Tile 0: DMA transfer completed synchronously, enable bit cleared
+[DMAC512-HAL] Tile 0: Remote transfer completed successfully
+[HAL-EXIT] hal_dma_remote_transfer completed with result: 256
+[DST-AFTER ] 0xE0E1E2E3E4E5E6E7E8E9EAEBECEDEEEFF0F1F2F3F4F5F6F7F8F9FAFBFCFDFEFF ...
+HAL result: 256
+
+
+┌─────────────────────────────────────────────────────────────────────────────────────┐
+│ [1;33m2. HAL transfer: node_0.dlm1(0x8000) -> dmem_1(0x10400000), size: 256[0m               │
+└─────────────────────────────────────────────────────────────────────────────────────┘
+[SRC-BEFORE] 0xE0E1E2E3E4E5E6E7E8E9EAEBECEDEEEFF0F1F2F3F4F5F6F7F8F9FAFBFCFDFEFF ...
+[HAL-ENTRY] hal_dma_remote_transfer called by test 'DMA Remote Transfer Test'
+[DRIVER-CALL] DMA Remote Transfer → DMAC512 HAL driver
+[DMAC512-HAL] Using Tile 0 DMAC512 for remote transfer
+[DMAC512-HAL] Tile 0: Configuring remote transfer (src=0x8000, dst=0x10400000, size=256)
+[DMAC512-HAL] Tile 0: Starting remote transfer...
+[DMAC512-POST-HAL] Tile 0: HAL enabled DMA, executing transfer immediately
+[DMAC512-HW-SYNC] Tile 0: DMA enable detected, executing transfer synchronously
+[DMAC512-HW-SYNC] Tile 0: Transfer 0x8000 -> 0x10400000 (size=256)
+[DMAC512-HW-SYNC] Tile 0: Memory copy completed successfully
+[Device-DMAC512] Hart 0 completed DMA transfer 256 -> asserting IRQ_DMA512
+[DMAC512-HW-SYNC] Tile 0: DMA transfer completed synchronously, enable bit cleared
+[DMAC512-HAL] Tile 0: Remote transfer completed successfully
+[HAL-EXIT] hal_dma_remote_transfer completed with result: 256
+[DST-AFTER ] 0xE0E1E2E3E4E5E6E7E8E9EAEBECEDEEEFF0F1F2F3F4F5F6F7F8F9FAFBFCFDFEFF ...
+HAL result: 256
+
+
+┌─────────────────────────────────────────────────────────────────────────────────────┐
+│ [1;33m3. HAL transfer: node_0.dlm1(0x8000) -> dmem_2(0x10800000), size: 256[0m               │
+└─────────────────────────────────────────────────────────────────────────────────────┘
+[SRC-BEFORE] 0xE0E1E2E3E4E5E6E7E8E9EAEBECEDEEEFF0F1F2F3F4F5F6F7F8F9FAFBFCFDFEFF ...
+[HAL-ENTRY] hal_dma_remote_transfer called by test 'DMA Remote Transfer Test'
+[DRIVER-CALL] DMA Remote Transfer → DMAC512 HAL driver
+[DMAC512-HAL] Using Tile 0 DMAC512 for remote transfer
+[DMAC512-HAL] Tile 0: Configuring remote transfer (src=0x8000, dst=0x10800000, size=256)
+[DMAC512-HAL] Tile 0: Starting remote transfer...
+[DMAC512-POST-HAL] Tile 0: HAL enabled DMA, executing transfer immediately
+[DMAC512-HW-SYNC] Tile 0: DMA enable detected, executing transfer synchronously
+[DMAC512-HW-SYNC] Tile 0: Transfer 0x8000 -> 0x10800000 (size=256)
+[DMAC512-HW-SYNC] Tile 0: Memory copy completed successfully
+[Device-DMAC512] Hart 0 completed DMA transfer 256 -> asserting IRQ_DMA512
+[DMAC512-HW-SYNC] Tile 0: DMA transfer completed synchronously, enable bit cleared
+[DMAC512-HAL] Tile 0: Remote transfer completed successfully
+[HAL-EXIT] hal_dma_remote_transfer completed with result: 256
+[DST-AFTER ] 0xE0E1E2E3E4E5E6E7E8E9EAEBECEDEEEFF0F1F2F3F4F5F6F7F8F9FAFBFCFDFEFF ...
+HAL result: 256
+
+
+┌─────────────────────────────────────────────────────────────────────────────────────┐
+│ [1;33m4. HAL transfer: node_0.dlm1(0x8000) -> dmem_3(0x10c00000), size: 256[0m               │
+└─────────────────────────────────────────────────────────────────────────────────────┘
+[SRC-BEFORE] 0xE0E1E2E3E4E5E6E7E8E9EAEBECEDEEEFF0F1F2F3F4F5F6F7F8F9FAFBFCFDFEFF ...
+[HAL-ENTRY] hal_dma_remote_transfer called by test 'DMA Remote Transfer Test'
+[DRIVER-CALL] DMA Remote Transfer → DMAC512 HAL driver
+[DMAC512-HAL] Using Tile 0 DMAC512 for remote transfer
+[DMAC512-HAL] Tile 0: Configuring remote transfer (src=0x8000, dst=0x10C00000, size=256)
+[DMAC512-HAL] Tile 0: Starting remote transfer...
+[DMAC512-POST-HAL] Tile 0: HAL enabled DMA, executing transfer immediately
+[DMAC512-HW-SYNC] Tile 0: DMA enable detected, executing transfer synchronously
+[DMAC512-HW-SYNC] Tile 0: Transfer 0x8000 -> 0x10c00000 (size=256)
+[DMAC512-HW-SYNC] Tile 0: Memory copy completed successfully
+[Device-DMAC512] Hart 0 completed DMA transfer 256 -> asserting IRQ_DMA512
+[DMAC512-HW-SYNC] Tile 0: DMA transfer completed synchronously, enable bit cleared
+[DMAC512-HAL] Tile 0: Remote transfer completed successfully
+[HAL-EXIT] hal_dma_remote_transfer completed with result: 256
+[DST-AFTER ] 0xE0E1E2E3E4E5E6E7E8E9EAEBECEDEEEFF0F1F2F3F4F5F6F7F8F9FAFBFCFDFEFF ...
+HAL result: 256
+
+
+┌─────────────────────────────────────────────────────────────────────────────────────┐
+│ [1;33m5. HAL transfer: node_0.dlm1(0x8000) -> dmem_4(0x20000000), size: 256[0m               │
+└─────────────────────────────────────────────────────────────────────────────────────┘
+[SRC-BEFORE] 0xE0E1E2E3E4E5E6E7E8E9EAEBECEDEEEFF0F1F2F3F4F5F6F7F8F9FAFBFCFDFEFF ...
+[HAL-ENTRY] hal_dma_remote_transfer called by test 'DMA Remote Transfer Test'
+[DRIVER-CALL] DMA Remote Transfer → DMAC512 HAL driver
+[DMAC512-HAL] Using Tile 0 DMAC512 for remote transfer
+[DMAC512-HAL] Tile 0: Configuring remote transfer (src=0x8000, dst=0x20000000, size=256)
+[DMAC512-HAL] Tile 0: Starting remote transfer...
+[DMAC512-POST-HAL] Tile 0: HAL enabled DMA, executing transfer immediately
+[DMAC512-HW-SYNC] Tile 0: DMA enable detected, executing transfer synchronously
+[DMAC512-HW-SYNC] Tile 0: Transfer 0x8000 -> 0x20000000 (size=256)
+[DMAC512-HW-SYNC] Tile 0: Memory copy completed successfully
+[Device-DMAC512] Hart 0 completed DMA transfer 256 -> asserting IRQ_DMA512
+[DMAC512-HW-SYNC] Tile 0: DMA transfer completed synchronously, enable bit cleared
+[DMAC512-HAL] Tile 0: Remote transfer completed successfully
+[HAL-EXIT] hal_dma_remote_transfer completed with result: 256
+[DST-AFTER ] 0xE0E1E2E3E4E5E6E7E8E9EAEBECEDEEEFF0F1F2F3F4F5F6F7F8F9FAFBFCFDFEFF ...
+HAL result: 256
+
+
+┌─────────────────────────────────────────────────────────────────────────────────────┐
+│ [1;33m6. HAL transfer: node_0.dlm1(0x8000) -> dmem_5(0x20400000), size: 256[0m               │
+└─────────────────────────────────────────────────────────────────────────────────────┘
+[SRC-BEFORE] 0xE0E1E2E3E4E5E6E7E8E9EAEBECEDEEEFF0F1F2F3F4F5F6F7F8F9FAFBFCFDFEFF ...
+[HAL-ENTRY] hal_dma_remote_transfer called by test 'DMA Remote Transfer Test'
+[DRIVER-CALL] DMA Remote Transfer → DMAC512 HAL driver
+[DMAC512-HAL] Using Tile 0 DMAC512 for remote transfer
+[DMAC512-HAL] Tile 0: Configuring remote transfer (src=0x8000, dst=0x20400000, size=256)
+[DMAC512-HAL] Tile 0: Starting remote transfer...
+[DMAC512-POST-HAL] Tile 0: HAL enabled DMA, executing transfer immediately
+[DMAC512-HW-SYNC] Tile 0: DMA enable detected, executing transfer synchronously
+[DMAC512-HW-SYNC] Tile 0: Transfer 0x8000 -> 0x20400000 (size=256)
+[DMAC512-HW-SYNC] Tile 0: Memory copy completed successfully
+[Device-DMAC512] Hart 0 completed DMA transfer 256 -> asserting IRQ_DMA512
+[DMAC512-HW-SYNC] Tile 0: DMA transfer completed synchronously, enable bit cleared
+[DMAC512-HAL] Tile 0: Remote transfer completed successfully
+[HAL-EXIT] hal_dma_remote_transfer completed with result: 256
+[DST-AFTER ] 0xE0E1E2E3E4E5E6E7E8E9EAEBECEDEEEFF0F1F2F3F4F5F6F7F8F9FAFBFCFDFEFF ...
+HAL result: 256
+
+
+┌─────────────────────────────────────────────────────────────────────────────────────┐
+│ [1;33m7. HAL transfer: node_0.dlm1(0x8000) -> dmem_6(0x20800000), size: 256[0m               │
+└─────────────────────────────────────────────────────────────────────────────────────┘
+[SRC-BEFORE] 0xE0E1E2E3E4E5E6E7E8E9EAEBECEDEEEFF0F1F2F3F4F5F6F7F8F9FAFBFCFDFEFF ...
+[HAL-ENTRY] hal_dma_remote_transfer called by test 'DMA Remote Transfer Test'
+[DRIVER-CALL] DMA Remote Transfer → DMAC512 HAL driver
+[DMAC512-HAL] Using Tile 0 DMAC512 for remote transfer
+[DMAC512-HAL] Tile 0: Configuring remote transfer (src=0x8000, dst=0x20800000, size=256)
+[DMAC512-HAL] Tile 0: Starting remote transfer...
+[DMAC512-POST-HAL] Tile 0: HAL enabled DMA, executing transfer immediately
+[DMAC512-HW-SYNC] Tile 0: DMA enable detected, executing transfer synchronously
+[DMAC512-HW-SYNC] Tile 0: Transfer 0x8000 -> 0x20800000 (size=256)
+[DMAC512-HW-SYNC] Tile 0: Memory copy completed successfully
+[Device-DMAC512] Hart 0 completed DMA transfer 256 -> asserting IRQ_DMA512
+[DMAC512-HW-SYNC] Tile 0: DMA transfer completed synchronously, enable bit cleared
+[DMAC512-HAL] Tile 0: Remote transfer completed successfully
+[HAL-EXIT] hal_dma_remote_transfer completed with result: 256
+[DST-AFTER ] 0xE0E1E2E3E4E5E6E7E8E9EAEBECEDEEEFF0F1F2F3F4F5F6F7F8F9FAFBFCFDFEFF ...
+HAL result: 256
+
+
+┌─────────────────────────────────────────────────────────────────────────────────────┐
+│ [1;33m8. HAL transfer: node_0.dlm1(0x8000) -> dmem_7(0x20c00000), size: 256[0m               │
+└─────────────────────────────────────────────────────────────────────────────────────┘
+[SRC-BEFORE] 0xE0E1E2E3E4E5E6E7E8E9EAEBECEDEEEFF0F1F2F3F4F5F6F7F8F9FAFBFCFDFEFF ...
+[HAL-ENTRY] hal_dma_remote_transfer called by test 'DMA Remote Transfer Test'
+[DRIVER-CALL] DMA Remote Transfer → DMAC512 HAL driver
+[DMAC512-HAL] Using Tile 0 DMAC512 for remote transfer
+[DMAC512-HAL] Tile 0: Configuring remote transfer (src=0x8000, dst=0x20C00000, size=256)
+[DMAC512-HAL] Tile 0: Starting remote transfer...
+[DMAC512-POST-HAL] Tile 0: HAL enabled DMA, executing transfer immediately
+[DMAC512-HW-SYNC] Tile 0: DMA enable detected, executing transfer synchronously
+[DMAC512-HW-SYNC] Tile 0: Transfer 0x8000 -> 0x20c00000 (size=256)
+[DMAC512-HW-SYNC] Tile 0: Memory copy completed successfully
+[Device-DMAC512] Hart 0 completed DMA transfer 256 -> asserting IRQ_DMA512
+[DMAC512-HW-SYNC] Tile 0: DMA transfer completed synchronously, enable bit cleared
+[DMAC512-HAL] Tile 0: Remote transfer completed successfully
+[HAL-EXIT] hal_dma_remote_transfer completed with result: 256
+[DST-AFTER ] 0xE0E1E2E3E4E5E6E7E8E9EAEBECEDEEEFF0F1F2F3F4F5F6F7F8F9FAFBFCFDFEFF ...
+HAL result: 256
+
+[1m[C0-Distribute] Summary: 8/8 passed[0m
+
+[C0 Master] Checking for pending DMA transfers on Tile 0...
+[Hart-1-PLIC] Claimed interrupt DMA512 (11)
+[Hart-1-Handler] Processing DMA completion interrupt
+[Hart-1-PLIC] Completed interrupt DMA512 (11)
+[Tile 1] Processed 1 PLIC interrupts
+[C0 Master] C0 Distribute completed. DMA transfers detected: 0, Result: PASS
+
+╔═══════════════════════════════════════════════════════════════════════════════════╗
+║ [1;33mParallel C0 Access Test - C0 Main Thread Orchestrator[0m                             ║
+╚═══════════════════════════════════════════════════════════════════════════════════╝
+
+[C0-Orchestrator] Running on main C0 thread, coordinating tile threads directly
+[C0-Orchestrator] Selecting two tiles for parallel C0 access test
+[C0-Orchestrator] Tasks will use tile_to_c0_transfer_task which auto-detects tile ID
+[C0-Orchestrator] Both transfers will target the same C0 destination simultaneously
+[C0 Master] Created HAL test task 1: 'Parallel-C0-Transfer-A'
+[C0 Master] Created HAL test task 2: 'Parallel-C0-Transfer-B'
+[C0 Master] HAL test task 1 'Parallel-C0-Transfer-A' assigned to tile 1 (tile 0 reserved for C0 master)
+[C0 Master] HAL test task 2 'Parallel-C0-Transfer-B' assigned to tile 2 (tile 0 reserved for C0 master)
+[C0-Orchestrator] Queued parallel tasks to available tile threads (round-robin assignment)
+[C0-Orchestrator] Waiting for tile threads to execute parallel transfers...
+[Tile 1] Starting task 1 execution
+=== [Tile 1] Starting Parallel-C0-Transfer-A - Print Session BEGIN ===
+[Tile 1] Executing HAL test: Parallel-C0-Transfer-A
+[HAL-FLOW] Tile 1: Test 'Parallel-C0-Transfer-A' → HAL 'hal_reference' → Driver 'hardware_driver'
+[HAL-CALL] Tile 1: Calling HAL test function for 'Parallel-C0-Transfer-A'
+[Tile 1] Starting parallel transfer to C0...
+[Tile 1] Source prepared with pattern 0x11
+[HAL-ENTRY] hal_dma_remote_transfer called by test 'DMA Remote Transfer Test'
+[DRIVER-CALL] DMA Remote Transfer → DMAC512 HAL driver
+[DMAC512-HAL] Using Tile 1 DMAC512 for remote transfer
+[DMAC512-HAL] Tile 1: Configuring remote transfer (src=0x108000, dst=0x10002000, size=512)
+[DMAC512-HAL] Tile 1: Starting remote transfer...
+[DMAC512-POST-HAL] Tile 1: HAL enabled DMA, executing transfer immediately
+[DMAC512-HW-SYNC] Tile 1: DMA enable detected, executing transfer synchronously
+[DMAC512-HW-SYNC] Tile 1: Transfer 0x108000 -> 0x10002000 (size=512)
+[DMAC512-HW-SYNC] Tile 1: Memory copy completed successfully
+[Device-DMAC512] Hart 1 completed DMA transfer 512 -> asserting IRQ_DMA512
+[DMAC512-HW-SYNC] Tile 1: DMA transfer completed synchronously, enable bit cleared
+[DMAC512-HAL] Tile 1: Remote transfer completed successfully
+[HAL-EXIT] hal_dma_remote_transfer completed with result: 512
+[Tile 1] Parallel transfer to C0 completed with result: 512
+[HAL-RESULT] Tile 1: HAL test 'Parallel-C0-Transfer-A' returned result: 512
+[Tile 1] HAL test 'Parallel-C0-Transfer-A' completed with result: PASS
+[Tile 1] Task 1 completed with result: 512
+=== [Tile 1] Parallel-C0-Transfer-A Completed: PASS - Print Session END ===
+
+[Device-TaskComp] Hart 1 completed task 1 -> asserting IRQ_MESH_NODE
+[Tile 1] Completed task 1 (result=512)
+[Hart-1-PLIC] Claimed interrupt DMA512 (11)
+[Hart-1-Handler] Processing DMA completion interrupt
+[Hart-1-PLIC] Completed interrupt DMA512 (11)
+[Hart-1-PLIC] Claimed interrupt MESH_NODE (20)
+[Hart-1-Handler] Processing task completion interrupt
+[Hart-1-PLIC] Completed interrupt MESH_NODE (20)
+[Tile 1] Processed 2 PLIC interrupts
+[Tile 2] Starting task 2 execution
+=== [Tile 2] Starting Parallel-C0-Transfer-B - Print Session BEGIN ===
+[Tile 2] Executing HAL test: Parallel-C0-Transfer-B
+[HAL-FLOW] Tile 2: Test 'Parallel-C0-Transfer-B' → HAL 'hal_reference' → Driver 'hardware_driver'
+[HAL-CALL] Tile 2: Calling HAL test function for 'Parallel-C0-Transfer-B'
+[Tile 2] Starting parallel transfer to C0...
+[Tile 2] Source prepared with pattern 0x12
+[HAL-ENTRY] hal_dma_remote_transfer called by test 'DMA Remote Transfer Test'
+[DRIVER-CALL] DMA Remote Transfer → DMAC512 HAL driver
+[DMAC512-HAL] Using Tile 2 DMAC512 for remote transfer
+[DMAC512-HAL] Tile 2: Configuring remote transfer (src=0x208000, dst=0x10002000, size=512)
+[DMAC512-HAL] Tile 2: Starting remote transfer...
+[DMAC512-POST-HAL] Tile 2: HAL enabled DMA, executing transfer immediately
+[DMAC512-HW-SYNC] Tile 2: DMA enable detected, executing transfer synchronously
+[DMAC512-HW-SYNC] Tile 2: Transfer 0x208000 -> 0x10002000 (size=512)
+[DMAC512-HW-SYNC] Tile 2: Memory copy completed successfully
+[Device-DMAC512] Hart 2 completed DMA transfer 512 -> asserting IRQ_DMA512
+[DMAC512-HW-SYNC] Tile 2: DMA transfer completed synchronously, enable bit cleared
+[DMAC512-HAL] Tile 2: Remote transfer completed successfully
+[HAL-EXIT] hal_dma_remote_transfer completed with result: 512
+[Tile 2] Parallel transfer to C0 completed with result: 512
+[HAL-RESULT] Tile 2: HAL test 'Parallel-C0-Transfer-B' returned result: 512
+[Tile 2] HAL test 'Parallel-C0-Transfer-B' completed with result: PASS
+[Tile 2] Task 2 completed with result: 512
+=== [Tile 2] Parallel-C0-Transfer-B Completed: PASS - Print Session END ===
+
+[Device-TaskComp] Hart 2 completed task 2 -> asserting IRQ_MESH_NODE
+[Tile 2] Completed task 2 (result=512)
+[Hart-2-PLIC] Claimed interrupt DMA512 (11)
+[Hart-2-Handler] Processing DMA completion interrupt
+[Hart-2-PLIC] Completed interrupt DMA512 (11)
+[Hart-2-PLIC] Claimed interrupt MESH_NODE (20)
+[Hart-2-Handler] Processing task completion interrupt
+[Hart-2-PLIC] Completed interrupt MESH_NODE (20)
+[Tile 2] Processed 2 PLIC interrupts
+[C0-Orchestrator] Parallel transfers completed!
+[C0-Orchestrator] Task A transfer result: 512
+[C0-Orchestrator] Task B transfer result: 512
+[C0-Orchestrator] Parallel C0 Access Test: PASS
+[C0 Master] C0 Master tests completed:
+[C0 Master] - C0 Gather: PASS
+[C0 Master] - C0 Distribute: PASS
+[C0 Master] - Parallel C0 Access: PASS
+
+[C0 Master] Executing HAL tests in parallel across tile processors...
+[C0 Master] Creating 6 HAL test tasks for parallel execution...
+[C0 Master] Created HAL test task 3: 'CPU Local Move'
+[C0 Master] HAL test task 3 'CPU Local Move' assigned to tile 3 (tile 0 reserved for C0 master)
+[C0 Master] Created HAL test task 4: 'DMA Local Transfer'
+[C0 Master] HAL test task 4 'DMA Local Transfer' assigned to tile 4 (tile 0 reserved for C0 master)
+[C0 Master] Created HAL test task 5: 'DMA Remote Transfer'
+[C0 Master] HAL test task 5 'DMA Remote Transfer' assigned to tile 5 (tile 0 reserved for C0 master)
+[C0 Master] Created HAL test task 6: 'NoC Bandwidth'
+[C0 Master] HAL test task 6 'NoC Bandwidth' assigned to tile 6 (tile 0 reserved for C0 master)
+[C0 Master] Created HAL test task 7: 'NoC Latency'
+[C0 Master] HAL test task 7 'NoC Latency' assigned to tile 7 (tile 0 reserved for C0 master)
+[C0 Master] Created HAL test task 8: 'Random DMA Remote'
+[C0 Master] HAL test task 8 'Random DMA Remote' assigned to tile 1 (tile 0 reserved for C0 master)
+[C0 Master] Waiting for all 6 HAL test tasks to complete in parallel...
+[C0 Master] Waiting for 6 HAL test tasks to complete (with interrupt processing)...
+[Tile 7] Starting task 7 execution
+=== [Tile 7] Starting NoC Latency - Print Session BEGIN ===
+[Tile 7] Executing HAL test: NoC Latency
+[Tile 4] Starting task 4 execution
+[HAL-FLOW] Tile 7: Test 'NoC Latency' → HAL 'hal_reference' → Driver 'hardware_driver'
+[HAL-CALL] Tile 7: Calling HAL test function for 'NoC Latency'
+[Tile 5] Starting task 5 execution
+[HAL-ENTRY] hal_dma_remote_transfer called by test 'DMA Remote Transfer Test'
+[DRIVER-CALL] DMA Remote Transfer → DMAC512 HAL driver
+[DMAC512-HAL] Using Tile 0 DMAC512 for remote transfer
+[DMAC512-HAL] Tile 0: Configuring remote transfer (src=0x8000, dst=0x10000000, size=64)
+[DMAC512-HAL] Tile 0: Starting remote transfer...
+[DMAC512-POST-HAL] Tile 0: HAL enabled DMA, executing transfer immediately
+[DMAC512-HW-SYNC] Tile 0: DMA enable detected, executing transfer synchronously
+[DMAC512-HW-SYNC] Tile 0: Transfer 0x8000 -> 0x10000000 (size=64)
+[DMAC512-HW-SYNC] Tile 0: Memory copy completed successfully
+[Device-DMAC512] Hart 0 completed DMA transfer 64 -> asserting IRQ_DMA512
+[Tile 6] Starting task 6 execution
+[DMAC512-HW-SYNC] Tile 0: DMA transfer completed synchronously, enable bit cleared
+[DMAC512-HAL] Tile 0: Remote transfer completed successfully
+[HAL-EXIT] hal_dma_remote_transfer completed with result: 64
+[Perf] NoC latency (DMA remote): 42000 ns
+
+[HAL-RESULT] Tile 7: HAL test 'NoC Latency' returned result: 1
+[Tile 7] HAL test 'NoC Latency' completed with result: PASS
+[Tile 7] Task 7 completed with result: 1
+=== [Tile 7] NoC Latency Completed: PASS - Print Session END ===
+
+[Device-TaskComp] Hart 7 completed task 7 -> asserting IRQ_MESH_NODE
+[Tile 7] Completed task 7 (result=1)
+[Hart-7-PLIC] Claimed interrupt MESH_NODE (20)
+[Hart-7-Handler] Processing task completion interrupt
+[Hart-7-PLIC] Completed interrupt MESH_NODE (20)
+[Tile 7] Processed 1 PLIC interrupts
+=== [Tile 4] Starting DMA Local Transfer - Print Session BEGIN ===
+[Tile 4] Executing HAL test: DMA Local Transfer
+[HAL-FLOW] Tile 4: Test 'DMA Local Transfer' → HAL 'hal_reference' → Driver 'hardware_driver'
+[HAL-CALL] Tile 4: Calling HAL test function for 'DMA Local Transfer'
+
+╔═══════════════════════════════════════════════════════════════════════════════════╗
+║ [1;32mdma_local_transfer[0m                                                                ║
+╚═══════════════════════════════════════════════════════════════════════════════════╝
+
+[SRC-BEFORE]  Node1.DLM1_512 0xAAABACADAEAFB0B1B2B3B4B5B6B7B8B9BABBBCBDBEBFC0C1C2C3C4C5C6C7C8C9 ...
+[DST-BEFORE]  Node1.DLM1_512+256 0x0000000000000000000000000000000000000000000000000000000000000000 ...
+[HAL-ENTRY] hal_dma_local_transfer called by test 'DMA Local Transfer Test'
+[DRIVER-CALL] DMA Local Transfer → DMAC512 HAL driver
+[DMAC512-HAL] Tile 1: Configuring transfer (src=0x108000, dst=0x108100, size=256)
+[DMAC512-HAL] Tile 1: Starting transfer...
+[DMAC512-POST-HAL] Tile 1: HAL enabled DMA, executing transfer immediately
+[DMAC512-HW-SYNC] Tile 1: DMA enable detected, executing transfer synchronously
+[DMAC512-HW-SYNC] Tile 1: Transfer 0x108000 -> 0x108100 (size=256)
+[DMAC512-HW-SYNC] Tile 1: Memory copy completed successfully
+[Device-DMAC512] Hart 1 completed DMA transfer 256 -> asserting IRQ_DMA512
+[DMAC512-HW-SYNC] Tile 1: DMA transfer completed synchronously, enable bit cleared
+[DMAC512-HAL] Tile 1: Transfer completed successfully
+[HAL-EXIT] hal_dma_local_transfer completed with result: 256
+[SRC-AFTER ]  Node1.DLM1_512 0xAAABACADAEAFB0B1B2B3B4B5B6B7B8B9BABBBCBDBEBFC0C1C2C3C4C5C6C7C8C9 ...
+[DST-AFTER ]  Node1.DLM1_512+256 0xAAABACADAEAFB0B1B2B3B4B5B6B7B8B9BABBBCBDBEBFC0C1C2C3C4C5C6C7C8C9 ...
+[Test] DMA local transfer: PASS (HAL result: 256)
+
+[HAL-RESULT] Tile 4: HAL test 'DMA Local Transfer' returned result: 1
+[Tile 4] HAL test 'DMA Local Transfer' completed with result: PASS
+[Tile 4] Task 4 completed with result: 1
+=== [Tile 4] DMA Local Transfer Completed: PASS - Print Session END ===
+
+[Device-TaskComp] Hart 4 completed task 4 -> asserting IRQ_MESH_NODE
+[Tile 4] Completed task 4 (result=1)
+[Hart-4-PLIC] Claimed interrupt MESH_NODE (20)
+[Hart-4-Handler] Processing task completion interrupt
+[Hart-4-PLIC] Completed interrupt MESH_NODE (20)
+[Tile 4] Processed 1 PLIC interrupts
+[Hart-1-PLIC] Claimed interrupt DMA512 (11)
+[Hart-1-Handler] Processing DMA completion interrupt
+[Hart-1-PLIC] Completed interrupt DMA512 (11)
+[Tile 1] Processed 1 PLIC interrupts
+[Tile 1] Starting task 8 execution
+=== [Tile 1] Starting Random DMA Remote - Print Session BEGIN ===
+[Tile 1] Executing HAL test: Random DMA Remote
+[HAL-FLOW] Tile 1: Test 'Random DMA Remote' → HAL 'hal_reference' → Driver 'hardware_driver'
+[HAL-CALL] Tile 1: Calling HAL test function for 'Random DMA Remote'
+
+╔═══════════════════════════════════════════════════════════════════════════════════╗
+║ [1;35mrandom_dma_remote[0m                                                                 ║
+╚═══════════════════════════════════════════════════════════════════════════════════╝
+
+
+┌─────────────────────────────────────────────────────────────────────────────────────┐
+│ [1;33m1. HAL transfer: node_0.dlm1(0x8000) -> dmem_5(0x20400000)[0m                          │
+└─────────────────────────────────────────────────────────────────────────────────────┘
+[SRC-BEFORE] 0xA5A4A7A6A1A0A3A2ADACAFAEA9A8ABAAB5B4B7B6B1B0B3B2BDBCBFBEB9B8BBBA ...
+[DST-BEFORE] 0x0000000000000000000000000000000000000000000000000000000000000000 ...
+[HAL-ENTRY] hal_dma_remote_transfer called by test 'DMA Remote Transfer Test'
+[DRIVER-CALL] DMA Remote Transfer → DMAC512 HAL driver
+[DMAC512-HAL] Using Tile 0 DMAC512 for remote transfer
+[DMAC512-HAL] Tile 0: Configuring remote transfer (src=0x8000, dst=0x20400000, size=256)
+[DMAC512-HAL] Tile 0: Starting remote transfer...
+[DMAC512-POST-HAL] Tile 0: HAL enabled DMA, executing transfer immediately
+[DMAC512-HW-SYNC] Tile 0: DMA enable detected, executing transfer synchronously
+[DMAC512-HW-SYNC] Tile 0: Transfer 0x8000 -> 0x20400000 (size=256)
+[DMAC512-HW-SYNC] Tile 0: Memory copy completed successfully
+[Device-DMAC512] Hart 0 completed DMA transfer 256 -> asserting IRQ_DMA512
+[DMAC512-HW-SYNC] Tile 0: DMA transfer completed synchronously, enable bit cleared
+[DMAC512-HAL] Tile 0: Remote transfer completed successfully
+[HAL-EXIT] hal_dma_remote_transfer completed with result: 256
+[SRC-AFTER ] 0xA5A4A7A6A1A0A3A2ADACAFAEA9A8ABAAB5B4B7B6B1B0B3B2BDBCBFBEB9B8BBBA ...
+[DST-AFTER ] 0xA5A4A7A6A1A0A3A2ADACAFAEA9A8ABAAB5B4B7B6B1B0B3B2BDBCBFBEB9B8BBBA ...
+HAL result: 256, Verify: PASS
+
+
+┌─────────────────────────────────────────────────────────────────────────────────────┐
+│ [1;33m2. HAL transfer: node_4.dlm1(0x408000) -> dmem_7(0x20c00000)[0m                        │
+└─────────────────────────────────────────────────────────────────────────────────────┘
+[SRC-BEFORE] 0x5A5B58595E5F5C5D52535051565754554A4B48494E4F4C4D4243404146474445 ...
+[DST-BEFORE] 0x0000000000000000000000000000000000000000000000000000000000000000 ...
+[HAL-ENTRY] hal_dma_remote_transfer called by test 'DMA Remote Transfer Test'
+[DRIVER-CALL] DMA Remote Transfer → DMAC512 HAL driver
+[DMAC512-HAL] Using Tile 4 DMAC512 for remote transfer
+[DMAC512-HAL] Tile 4: Configuring remote transfer (src=0x408000, dst=0x20C00000, size=256)
+[DMAC512-HAL] Tile 4: Starting remote transfer...
+[DMAC512-POST-HAL] Tile 4: HAL enabled DMA, executing transfer immediately
+[DMAC512-HW-SYNC] Tile 4: DMA enable detected, executing transfer synchronously
+[DMAC512-HW-SYNC] Tile 4: Transfer 0x408000 -> 0x20c00000 (size=256)
+[DMAC512-HW-SYNC] Tile 4: Memory copy completed successfully
+[Device-DMAC512] Hart 4 completed DMA transfer 256 -> asserting IRQ_DMA512
+[DMAC512-HW-SYNC] Tile 4: DMA transfer completed synchronously, enable bit cleared
+[DMAC512-HAL] Tile 4: Remote transfer completed successfully
+[HAL-EXIT] hal_dma_remote_transfer completed with result: 256
+[SRC-AFTER ] 0x5A5B58595E5F5C5D52535051565754554A4B48494E4F4C4D4243404146474445 ...
+[DST-AFTER ] 0x5A5B58595E5F5C5D52535051565754554A4B48494E4F4C4D4243404146474445 ...
+HAL result: 256, Verify: PASS
+
+[1m[RndDMA] Summary: 2/2 passed[0m
+[HAL-RESULT] Tile 1: HAL test 'Random DMA Remote' returned result: 1
+[Tile 1] HAL test 'Random DMA Remote' completed with result: PASS
+[Tile 1] Task 8 completed with result: 1
+=== [Tile 1] Random DMA Remote Completed: PASS - Print Session END ===
+
+[Device-TaskComp] Hart 1 completed task 8 -> asserting IRQ_MESH_NODE
+[Tile 1] Completed task 8 (result=1)
+[Hart-1-PLIC] Claimed interrupt DMA512 (11)
+[Hart-1-Handler] Processing DMA completion interrupt
+[Hart-1-PLIC] Completed interrupt DMA512 (11)
+[Hart-1-PLIC] Claimed interrupt MESH_NODE (20)
+[Hart-1-Handler] Processing task completion interrupt
+[Hart-1-PLIC] Completed interrupt MESH_NODE (20)
+[Tile 1] Processed 2 PLIC interrupts
+[Hart-3-PLIC] Claimed interrupt DMA512 (11)
+[Hart-3-Handler] Processing DMA completion interrupt
+[Hart-3-PLIC] Completed interrupt DMA512 (11)
+[Tile 3] Processed 1 PLIC interrupts
+[Tile 3] Starting task 3 execution
+=== [Tile 3] Starting CPU Local Move - Print Session BEGIN ===
+[Tile 3] Executing HAL test: CPU Local Move
+[HAL-FLOW] Tile 3: Test 'CPU Local Move' → HAL 'hal_reference' → Driver 'hardware_driver'
+[HAL-CALL] Tile 3: Calling HAL test function for 'CPU Local Move'
+
+╔═══════════════════════════════════════════════════════════════════════════════════╗
+║ [1;32mcpu_local_move[0m                                                                    ║
+╚═══════════════════════════════════════════════════════════════════════════════════╝
+
+[SRC-BEFORE] 0x55565758595A5B5C5D5E5F606162636465666768696A6B6C6D6E6F7071727374 ...
+[DST-BEFORE] 0x0000000000000000000000000000000000000000000000000000000000000000 ...
+[HAL-ENTRY] hal_cpu_local_move called by test 'CPU Local Move Test'
+[DRIVER-CALL] CPU Local Move → memory driver (memmove)
+[HAL-EXIT] hal_cpu_local_move completed with result: 0
+[SRC-AFTER ] 0x55565758595A5B5C5D5E5F606162636465666768696A6B6C6D6E6F7071727374 ...
+[DST-AFTER ] 0x55565758595A5B5C5D5E5F606162636465666768696A6B6C6D6E6F7071727374 ...
+[Test] CPU local move: PASS
+
+[HAL-RESULT] Tile 3: HAL test 'CPU Local Move' returned result: 1
+[Tile 3] HAL test 'CPU Local Move' completed with result: PASS
+[Tile 3] Task 3 completed with result: 1
+=== [Tile 3] CPU Local Move Completed: PASS - Print Session END ===
+
+[Device-TaskComp] Hart 3 completed task 3 -> asserting IRQ_MESH_NODE
+[Tile 3] Completed task 3 (result=1)
+[Hart-3-PLIC] Claimed interrupt MESH_NODE (20)
+[Hart-3-Handler] Processing task completion interrupt
+[Hart-3-PLIC] Completed interrupt MESH_NODE (20)
+[Tile 3] Processed 1 PLIC interrupts
+=== [Tile 6] Starting NoC Bandwidth - Print Session BEGIN ===
+[Tile 6] Executing HAL test: NoC Bandwidth
+[HAL-FLOW] Tile 6: Test 'NoC Bandwidth' → HAL 'hal_reference' → Driver 'hardware_driver'
+[HAL-CALL] Tile 6: Calling HAL test function for 'NoC Bandwidth'
+[HAL-ENTRY] hal_cpu_local_move called by test 'CPU Local Move Test'
+[DRIVER-CALL] CPU Local Move → memory driver (memmove)
+[HAL-EXIT] hal_cpu_local_move completed with result: 0
+[Perf] CPU local move bandwidth: 1008.06 MB/s
+[HAL-RESULT] Tile 6: HAL test 'NoC Bandwidth' returned result: 1
+[Tile 6] HAL test 'NoC Bandwidth' completed with result: PASS
+[Tile 6] Task 6 completed with result: 1
+=== [Tile 6] NoC Bandwidth Completed: PASS - Print Session END ===
+
+[Device-TaskComp] Hart 6 completed task 6 -> asserting IRQ_MESH_NODE
+[Tile 6] Completed task 6 (result=1)
+[Hart-6-PLIC] Claimed interrupt MESH_NODE (20)
+[Hart-6-Handler] Processing task completion interrupt
+[Hart-6-PLIC] Completed interrupt MESH_NODE (20)
+[Tile 6] Processed 1 PLIC interrupts
+=== [Tile 5] Starting DMA Remote Transfer - Print Session BEGIN ===
+[Tile 5] Executing HAL test: DMA Remote Transfer
+[HAL-FLOW] Tile 5: Test 'DMA Remote Transfer' → HAL 'hal_reference' → Driver 'hardware_driver'
+[HAL-CALL] Tile 5: Calling HAL test function for 'DMA Remote Transfer'
+
+╔═══════════════════════════════════════════════════════════════════════════════════╗
+║ [1;32mdma_remote_transfer[0m                                                               ║
+╚═══════════════════════════════════════════════════════════════════════════════════╝
+
+[SRC-BEFORE]  Node2.DLM1_512 0x5A5B5C5D5E5F606162636465666768696A6B6C6D6E6F70717273747576777879 ...
+[DST-BEFORE]  DMEM5 0x0000000000000000000000000000000000000000000000000000000000000000 ...
+[HAL-ENTRY] hal_dma_remote_transfer called by test 'DMA Remote Transfer Test'
+[DRIVER-CALL] DMA Remote Transfer → DMAC512 HAL driver
+[DMAC512-HAL] Using Tile 2 DMAC512 for remote transfer
+[DMAC512-HAL] Tile 2: Configuring remote transfer (src=0x208000, dst=0x20400000, size=256)
+[DMAC512-HAL] Tile 2: Starting remote transfer...
+[DMAC512-POST-HAL] Tile 2: HAL enabled DMA, executing transfer immediately
+[DMAC512-HW-SYNC] Tile 2: DMA enable detected, executing transfer synchronously
+[DMAC512-HW-SYNC] Tile 2: Transfer 0x208000 -> 0x20400000 (size=256)
+[DMAC512-HW-SYNC] Tile 2: Memory copy completed successfully
+[Device-DMAC512] Hart 2 completed DMA transfer 256 -> asserting IRQ_DMA512
+[DMAC512-HW-SYNC] Tile 2: DMA transfer completed synchronously, enable bit cleared
+[DMAC512-HAL] Tile 2: Remote transfer completed successfully
+[HAL-EXIT] hal_dma_remote_transfer completed with result: 256
+[SRC-AFTER ]  Node2.DLM1_512 0x5A5B5C5D5E5F606162636465666768696A6B6C6D6E6F70717273747576777879 ...
+[DST-AFTER ]  DMEM5 0x5A5B5C5D5E5F606162636465666768696A6B6C6D6E6F70717273747576777879 ...
+[Test] DMA remote transfer: PASS (HAL result: 256)
+
+[HAL-RESULT] Tile 5: HAL test 'DMA Remote Transfer' returned result: 1
+[Tile 5] HAL test 'DMA Remote Transfer' completed with result: PASS
+[Tile 5] Task 5 completed with result: 1
+=== [Tile 5] DMA Remote Transfer Completed: PASS - Print Session END ===
+
+[Device-TaskComp] Hart 5 completed task 5 -> asserting IRQ_MESH_NODE
+[Tile 5] Completed task 5 (result=1)
+[Hart-5-PLIC] Claimed interrupt DMA512 (11)
+[Hart-5-Handler] Processing DMA completion interrupt
+[Hart-5-PLIC] Completed interrupt DMA512 (11)
+[Hart-5-PLIC] Claimed interrupt MESH_NODE (20)
+[Hart-5-Handler] Processing task completion interrupt
+[Hart-5-PLIC] Completed interrupt MESH_NODE (20)
+[Tile 5] Processed 2 PLIC interrupts
+[C0 Master] All 6 HAL test tasks completed!
+[C0 Master] All parallel HAL test tasks completed!
+
+
+╔═══════════════════════════════════════════════════════════════════════════════════╗
+║ [1;36mDMAC512 COMPREHENSIVE HAL/DRIVER TESTS[0m                                            ║
+╚═══════════════════════════════════════════════════════════════════════════════════╝
+
+
+╔═══════════════════════════════════════════════════════════════════════════════════╗
+║ [1;33mDMAC512 COMPREHENSIVE TEST SUITE[0m                                                  ║
+╚═══════════════════════════════════════════════════════════════════════════════════╝
+[SUITE] Running comprehensive DMAC512 HAL/Driver tests
+[SUITE] Platform: 8 tiles, 8 DMEMs
+
+[SUITE] === HANDLE MANAGEMENT TESTS ===
+
+╔═══════════════════════════════════════════════════════════════════════════════════╗
+║ [1;33mDMAC512 Handle Init - Valid Parameters[0m                                            ║
+╚═══════════════════════════════════════════════════════════════════════════════════╝
+[TEST] Testing HAL_DMAC512InitHandle with valid parameters
+[TEST] Handle initialization: PASS
+[TEST] Handle.Instance = 0x5773fcf68b50, Expected = 0x5773fcf68b50
+[TEST] DMAC512 Handle Init Valid: PASS
+
+
+╔═══════════════════════════════════════════════════════════════════════════════════╗
+║ [1;33mDMAC512 Handle Init - Null Pointer Handling[0m                                       ║
+╚═══════════════════════════════════════════════════════════════════════════════════╝
+[TEST] Testing HAL_DMAC512InitHandle with null handle pointer
+[TEST] Calling HAL_DMAC512InitHandle(NULL, 0x5773fcf68b50)
+[TEST] Expected behavior: HAL should validate input parameters
+[TEST] Current HAL implementation: No null pointer validation
+[TEST] DMAC512 Handle Init Null Pointer: PASS (documented behavior)
+
+
+╔═══════════════════════════════════════════════════════════════════════════════════╗
+║ [1;33mDMAC512 Handle Init - Invalid Address[0m                                             ║
+╚═══════════════════════════════════════════════════════════════════════════════════╝
+[TEST] Testing HAL_DMAC512InitHandle with invalid register address
+[TEST] Handle.Instance = 0xdeadbeef (invalid address stored)
+[TEST] HAL behavior: Stores provided address without validation
+[TEST] DMAC512 Handle Init Invalid Address: PASS
+
+
+╔═══════════════════════════════════════════════════════════════════════════════════╗
+║ [1;33mDMAC512 Handle Init - Multiple Tiles[0m                                              ║
+╚═══════════════════════════════════════════════════════════════════════════════════╝
+[TEST] Testing HAL_DMAC512InitHandle across multiple tiles
+[TEST] Tile 0 handle init: PASS
+[TEST] Tile 1 handle init: PASS
+[TEST] Tile 2 handle init: PASS
+[TEST] Tile 3 handle init: PASS
+[TEST] Multiple tiles initialized: 4/4
+[TEST] DMAC512 Handle Multiple Tiles: PASS
+
+
+╔═══════════════════════════════════════════════════════════════════════════════════╗
+║ [1;33mDMAC512 Handle Reinitialization[0m                                                   ║
+╚═══════════════════════════════════════════════════════════════════════════════════╝
+[TEST] Testing handle reinitialization with different register addresses
+[TEST] First initialization (tile 0): PASS
+[TEST] Reinitialization (tile 1): PASS
+[TEST] Handle correctly updated: PASS
+[TEST] DMAC512 Handle Reinitialization: PASS
+
+
+╔═══════════════════════════════════════════════════════════════════════════════════╗
+║ [1;33mDMAC512 Handle Concurrent Access[0m                                                  ║
+╚═══════════════════════════════════════════════════════════════════════════════════╝
+[TEST] Testing concurrent handle operations on different tiles
+[TEST] Handle 1 (tile 0): PASS
+[TEST] Handle 2 (tile 1): PASS
+[TEST] Handles point to different registers: PASS
+[TEST] DMAC512 Handle Concurrent Access: PASS
+
+
+[SUITE] === CONFIGURATION TESTS ===
+
+╔═══════════════════════════════════════════════════════════════════════════════════╗
+║ [1;33mDMAC512 Config - Basic Transfer[0m                                                   ║
+╚═══════════════════════════════════════════════════════════════════════════════════╝
+[TEST] Testing HAL_DMAC512ConfigureChannel with basic parameters
+[TEST] Configuration: src=0x8000, dst=0x8200, count=256
+[TEST] HAL_DMAC512ConfigureChannel result: 0
+[TEST] Source address in register: PASS
+[TEST] Destination address in register: PASS
+[TEST] Transfer count in register: PASS
+[TEST] DMAC512 Config Basic Transfer: PASS
+
+
+╔═══════════════════════════════════════════════════════════════════════════════════╗
+║ [1;33mDMAC512 Config - Different Beat Modes[0m                                             ║
+╚═══════════════════════════════════════════════════════════════════════════════════╝
+[TEST] Testing HAL_DMAC512ConfigureChannel with different beat modes
+[TEST] Testing beat mode 0 (DOB=0, DFB=0)
+[TEST] Beat mode 0 configuration: PASS
+[TEST] Testing beat mode 1 (DOB=1, DFB=1)
+[TEST] Beat mode 1 configuration: PASS
+[TEST] Testing beat mode 2 (DOB=2, DFB=2)
+[TEST] Beat mode 2 configuration: PASS
+[TEST] Testing beat mode 3 (DOB=3, DFB=3)
+[TEST] Beat mode 3 configuration: PASS
+[TEST] Testing beat mode 4 (DOB=4, DFB=4)
+[TEST] Beat mode 4 configuration: PASS
+[TEST] Testing beat mode 5 (DOB=5, DFB=5)
+[TEST] Beat mode 5 configuration: PASS
+[TEST] Beat modes tested: 6/6 passed
+[TEST] DMAC512 Config Different Beat Modes: PASS
+
+
+╔═══════════════════════════════════════════════════════════════════════════════════╗
+║ [1;33mDMAC512 Config - Normal Mode[0m                                                      ║
+╚═══════════════════════════════════════════════════════════════════════════════════╝
+[TEST] Testing HAL_DMAC512ConfigureChannel with normal mode
+[TEST] Configuration: DMAC512_NORMAL_MODE = 0
+[TEST] HAL_DMAC512ConfigureChannel result: 0
+[TEST] Control register mode: 0 (expected 0)
+[TEST] Mode configuration: PASS
+[TEST] DMAC512 Config Normal Mode: PASS
+
+
+╔═══════════════════════════════════════════════════════════════════════════════════╗
+║ [1;33mDMAC512 Config - Zero Transfer Count[0m                                              ║
+╚═══════════════════════════════════════════════════════════════════════════════════╝
+[TEST] Testing HAL_DMAC512ConfigureChannel with zero transfer count
+[TEST] Configuration: XferCount = 0
+[TEST] HAL_DMAC512ConfigureChannel result: 0
+[TEST] Transfer count in register: 0 (expected 0)
+[TEST] Zero count configuration: PASS
+[TEST] DMAC512 Config Zero Transfer Count: PASS
+
+
+╔═══════════════════════════════════════════════════════════════════════════════════╗
+║ [1;33mDMAC512 Config - Max Transfer Count[0m                                               ║
+╚═══════════════════════════════════════════════════════════════════════════════════╝
+[TEST] Testing HAL_DMAC512ConfigureChannel with maximum transfer count
+[TEST] Configuration: XferCount = 16777215 (max)
+[TEST] HAL_DMAC512ConfigureChannel result: 0
+[TEST] Transfer count in register: 16777215 (expected 16777215)
+[TEST] Max count configuration: PASS
+[TEST] DMAC512 Config Max Transfer Count: PASS
+
+
+╔═══════════════════════════════════════════════════════════════════════════════════╗
+║ [1;33mDMAC512 Config - Null Handle[0m                                                      ║
+╚═══════════════════════════════════════════════════════════════════════════════════╝
+[TEST] Testing HAL_DMAC512ConfigureChannel with null handle
+[TEST] HAL_DMAC512ConfigureChannel(NULL) result: -1
+[TEST] Null handle error handling: PASS
+[TEST] DMAC512 Config Null Handle: PASS
+
+
+╔═══════════════════════════════════════════════════════════════════════════════════╗
+║ [1;33mDMAC512 Config - Sequential Configurations[0m                                        ║
+╚═══════════════════════════════════════════════════════════════════════════════════╝
+[TEST] Testing multiple sequential HAL_DMAC512ConfigureChannel calls
+[TEST] Config 1: src=0x8000, dst=0x8200, count=256
+[TEST] Config 1 verification: PASS
+[TEST] Config 2: src=0x8400, dst=0x8600, count=512
+[TEST] Config 2 verification: PASS
+[TEST] Config 3: src=0x8800, dst=0x8A00, count=128
+[TEST] Config 3 verification: PASS
+[TEST] Sequential configurations: 3/3 passed
+[TEST] DMAC512 Config Sequential Configs: PASS
+
+
+╔═══════════════════════════════════════════════════════════════════════════════════╗
+║ [1;33mDMAC512 Config - Parameter Validation[0m                                             ║
+╚═══════════════════════════════════════════════════════════════════════════════════╝
+[TEST] Testing HAL_DMAC512ConfigureChannel parameter validation
+[TEST] Valid configuration: PASS
+[TEST] Null instance test: Skipped (HAL does not validate NULL instances)
+[TEST] HAL behavior: Assumes valid handles - caller responsibility
+[TEST] Null instance handling: PASS
+[TEST] DMAC512 Config Parameter Validation: PASS
+
+
+[SUITE] === TRANSFER CONTROL TESTS ===
+
+╔═══════════════════════════════════════════════════════════════════════════════════╗
+║ [1;33mDMAC512 Start - Basic Transfer[0m                                                    ║
+╚═══════════════════════════════════════════════════════════════════════════════════╝
+[TEST] Testing HAL_DMAC512StartTransfers with basic transfer
+[DMAC512-HW-SYNC] Tile 0: DMA enable detected, executing transfer synchronously
+[DMAC512-HW-SYNC] Tile 0: Transfer 0x8000 -> 0x8200 (size=256)
+[DMAC512-HW-SYNC] Tile 0: Memory copy completed successfully
+[Device-DMAC512] Hart 0 completed DMA transfer 256 -> asserting IRQ_DMA512
+[DMAC512-HW-SYNC] Tile 0: DMA transfer completed synchronously, enable bit cleared
+[TEST] Transfer execution: PASS
+[TEST] Data verification: PASS
+[TEST] Source data:  0xA5A6A7A8A9AAABACADAEAFB0B1B2B3B4B5B6B7B8B9BABBBCBDBEBFC0C1C2C3C4 ...
+[TEST] Dest data:    0xA5A6A7A8A9AAABACADAEAFB0B1B2B3B4B5B6B7B8B9BABBBCBDBEBFC0C1C2C3C4 ...
+[TEST] DMAC512 Start Basic Transfer: PASS
+
+
+╔═══════════════════════════════════════════════════════════════════════════════════╗
+║ [1;33mDMAC512 Start - Without Configuration[0m                                             ║
+╚═══════════════════════════════════════════════════════════════════════════════════╝
+[TEST] Testing HAL_DMAC512StartTransfers without prior configuration
+[TEST] Enable bit set without config: PASS
+[TEST] DMAC_TOTAL_XFER_CNT register: 0x80000000
+[TEST] HAL behavior: Starts transfer regardless of configuration
+[TEST] DMAC512 Start Without Configuration: PASS
+
+
+╔═══════════════════════════════════════════════════════════════════════════════════╗
+║ [1;32mDMAC512 COMPREHENSIVE TEST RESULTS[0m                                          ║
+╠═══════════════════════════════════════════════════════════════════════════════════╣
+║ Total Tests:    16                                                                ║
+║ Passed Tests:   16                                                                ║
+║ Failed Tests:    0                                                                ║
+║ Success Rate:   100.0%                                                             ║
+║ Status:         [1;32mALL TESTS PASSED[0m                                       ║
+╚═══════════════════════════════════════════════════════════════════════════════════╝
+
+
+
+╔═══════════════════════════════════════════════════════════════════════════════════╗
+║ [1;36mPLIC COMPREHENSIVE HAL/DRIVER TESTS[0m                                               ║
+╚═══════════════════════════════════════════════════════════════════════════════════╝
+
+
+╔═══════════════════════════════════════════════════════════════════════════════════╗
+║ [1;36mPLIC COMPREHENSIVE TEST SUITE - START[0m                                             ║
+╚═══════════════════════════════════════════════════════════════════════════════════╝
+[PLIC-TESTS] Starting comprehensive PLIC HAL/Driver tests
+[PLIC-TESTS] Testing original PLIC implementation without bypassing
+
+
+╔═══════════════════════════════════════════════════════════════════════════════════╗
+║ [1;36mPLIC Init - Valid Hart[0m                                                            ║
+╚═══════════════════════════════════════════════════════════════════════════════════╝
+[TEST] Verifying PLIC initialization for valid hart IDs
+[TEST] Verifying hart 0...
+[TEST] Hart 0: PLIC instance = 0x724fd9a36010, target = 0
+[TEST] Hart 0: Instance valid = PASS, Target valid = PASS
+[TEST] Verifying hart 1...
+[TEST] Hart 1: PLIC instance = 0x724fd9a36010, target = 1
+[TEST] Hart 1: Instance valid = PASS, Target valid = PASS
+[TEST] Verifying hart 2...
+[TEST] Hart 2: PLIC instance = 0x724fd9234010, target = 0
+[TEST] Hart 2: Instance valid = PASS, Target valid = PASS
+[TEST] Verifying hart 3...
+[TEST] Hart 3: PLIC instance = 0x724fd9234010, target = 1
+[TEST] Hart 3: Instance valid = PASS, Target valid = PASS
+[TEST] Verifying hart 4...
+[TEST] Hart 4: PLIC instance = 0x724fd9234010, target = 2
+[TEST] Hart 4: Instance valid = PASS, Target valid = PASS
+[TEST] Verifying hart 5...
+[TEST] Hart 5: PLIC instance = 0x724fd9234010, target = 3
+[TEST] Hart 5: Instance valid = PASS, Target valid = PASS
+[TEST] Verifying hart 6...
+[TEST] Hart 6: PLIC instance = 0x724fd9234010, target = 4
+[TEST] Hart 6: Instance valid = PASS, Target valid = PASS
+[TEST] Verifying hart 7...
+[TEST] Hart 7: PLIC instance = 0x724fd9234010, target = 5
+[TEST] Hart 7: Instance valid = PASS, Target valid = PASS
+[TEST] PLIC Init Valid Hart: PASS
+
+
+╔═══════════════════════════════════════════════════════════════════════════════════╗
+║ [1;36mPLIC Init - Invalid Hart[0m                                                          ║
+╚═══════════════════════════════════════════════════════════════════════════════════╝
+[TEST] Testing plic_select with an invalid hart ID
+[TEST] Testing hart ID 100 (should be invalid)
+[TEST] Invalid hart 100 mapped to PLIC instance 0x724fd8a32010
+[TEST] Graceful handling: PASS
+[TEST] PLIC Init Invalid Hart: PASS
+
+
+╔═══════════════════════════════════════════════════════════════════════════════════╗
+║ [1;36mPLIC Init - Multiple Harts[0m                                                        ║
+╚═══════════════════════════════════════════════════════════════════════════════════╝
+[TEST] Verifying plic_select across multiple harts
+[TEST] Hart 0: PLIC = 0x724fd9a36010, Target = 0 - PASS
+[TEST] Hart 1: PLIC = 0x724fd9a36010, Target = 1 - PASS
+[TEST] Hart 2: PLIC = 0x724fd9234010, Target = 0 - PASS
+[TEST] Hart 3: PLIC = 0x724fd9234010, Target = 1 - PASS
+[TEST] Hart 4: PLIC = 0x724fd9234010, Target = 2 - PASS
+[TEST] Hart 5: PLIC = 0x724fd9234010, Target = 3 - PASS
+[TEST] Hart 6: PLIC = 0x724fd9234010, Target = 4 - PASS
+[TEST] Hart 7: PLIC = 0x724fd9234010, Target = 5 - PASS
+[TEST] Multiple harts initialized: 8/8
+[TEST] PLIC Multiple Hart Init: PASS
+
+
+╔═══════════════════════════════════════════════════════════════════════════════════╗
+║ [1;36mPLIC Instance Selection[0m                                                           ║
+╚═══════════════════════════════════════════════════════════════════════════════════╝
+[TEST] Testing plic_select for different hart ranges
+[TEST] Testing Hart 0 -> PLIC_0
+[TEST] Hart 0: PLIC = 0x724fd9a36010, Local target = 0 - PASS
+[TEST] Testing Hart 1 -> PLIC_0
+[TEST] Hart 1: PLIC = 0x724fd9a36010, Local target = 1 - PASS
+[TEST] Testing Hart 2 -> PLIC_1
+[TEST] Hart 2: PLIC = 0x724fd9234010, Local target = 0 - PASS
+[TEST] Testing Hart 7 -> PLIC_1
+[TEST] Hart 7: PLIC = 0x724fd9234010, Local target = 5 - PASS
+[TEST] Testing Hart 18 -> PLIC_2
+[TEST] Hart 18: PLIC = 0x724fd8a32010, Local target = 0 - PASS
+[TEST] Testing Hart 24 -> PLIC_2
+[TEST] Hart 24: PLIC = 0x724fd8a32010, Local target = 6 - PASS
+[TEST] PLIC Instance Selection: PASS
+
+
+╔═══════════════════════════════════════════════════════════════════════════════════╗
+║ [1;36mPLIC Hart-to-PLIC Mapping[0m                                                         ║
+╚═══════════════════════════════════════════════════════════════════════════════════╝
+[TEST] Testing hart-to-PLIC mapping consistency
+[TEST] Hart 0 consistency: PLIC 0x724fd9a36010->0x724fd9a36010, Target 0->0 - PASS
+[TEST] Hart 1 consistency: PLIC 0x724fd9a36010->0x724fd9a36010, Target 1->1 - PASS
+[TEST] Hart 2 consistency: PLIC 0x724fd9234010->0x724fd9234010, Target 0->0 - PASS
+[TEST] Hart 3 consistency: PLIC 0x724fd9234010->0x724fd9234010, Target 1->1 - PASS
+[TEST] Hart 4 consistency: PLIC 0x724fd9234010->0x724fd9234010, Target 2->2 - PASS
+[TEST] Hart 5 consistency: PLIC 0x724fd9234010->0x724fd9234010, Target 3->3 - PASS
+[TEST] Hart 6 consistency: PLIC 0x724fd9234010->0x724fd9234010, Target 4->4 - PASS
+[TEST] Hart 7 consistency: PLIC 0x724fd9234010->0x724fd9234010, Target 5->5 - PASS
+[TEST] PLIC Hart-to-PLIC Mapping: PASS
+
+
+╔═══════════════════════════════════════════════════════════════════════════════════╗
+║ [1;36mPLIC Concurrent Access[0m                                                            ║
+╚═══════════════════════════════════════════════════════════════════════════════════╝
+[TEST] Testing concurrent PLIC access from multiple harts
+[TEST] Hart 0 access: PLIC = 0x724fd9a36010, Target = 0 - PASS
+[TEST] Hart 1 access: PLIC = 0x724fd9a36010, Target = 1 - PASS
+[TEST] Independent access: PASS
+[TEST] PLIC Concurrent Access: PASS
+
+
+╔═══════════════════════════════════════════════════════════════════════════════════╗
+║ [1;36mPLIC Version and Capabilities[0m                                                     ║
+╚═══════════════════════════════════════════════════════════════════════════════════╝
+[TEST] Testing PLIC_version, PLIC_max_prio, PLIC_num_tar, PLIC_num_intr
+[TEST] Testing PLIC instance 0 (0x724fd9a36010)
+[TEST] PLIC 0: Version = 0, Max Priority = 0
+[TEST] PLIC 0: Targets = 0, Interrupts = 0
+[TEST] PLIC 0: Validity = V P T I
+[TEST] Testing PLIC instance 1 (0x724fd9234010)
+[TEST] PLIC 1: Version = 0, Max Priority = 0
+[TEST] PLIC 1: Targets = 0, Interrupts = 0
+[TEST] PLIC 1: Validity = V P T I
+[TEST] Testing PLIC instance 2 (0x724fd8a32010)
+[TEST] PLIC 2: Version = 0, Max Priority = 0
+[TEST] PLIC 2: Targets = 0, Interrupts = 0
+[TEST] PLIC 2: Validity = V P T I
+[TEST] PLIC Version and Capabilities: PASS
+
+
+╔═══════════════════════════════════════════════════════════════════════════════════╗
+║ [1;36mPLIC Priority Set/Get[0m                                                             ║
+╚═══════════════════════════════════════════════════════════════════════════════════╝
+[TEST] Testing PLIC_N_priority_set and priority verification
+[TEST] Testing priority operations on PLIC 0
+[TEST] Setting DMA512 (source 11) priority to 1
+[TEST] Set result = 1, Register value = 1 - SET_OK REG_OK
+[TEST] Setting GPIO (source 7) priority to 3
+[TEST] Set result = 1, Register value = 3 - SET_OK REG_OK
+[TEST] Setting MESH_NODE (source 20) priority to 5
+[TEST] Set result = 1, Register value = 5 - SET_OK REG_OK
+[TEST] Setting PIT (source 3) priority to 7
+[TEST] Set result = 1, Register value = 7 - SET_OK REG_OK
+[TEST] Testing priority operations on PLIC 1
+[TEST] Setting DMA512 (source 11) priority to 1
+[TEST] Set result = 1, Register value = 1 - SET_OK REG_OK
+[TEST] Setting GPIO (source 7) priority to 3
+[TEST] Set result = 1, Register value = 3 - SET_OK REG_OK
+[TEST] Setting MESH_NODE (source 20) priority to 5
+[TEST] Set result = 1, Register value = 5 - SET_OK REG_OK
+[TEST] Setting PIT (source 3) priority to 7
+[TEST] Set result = 1, Register value = 7 - SET_OK REG_OK
+[TEST] PLIC Priority Set/Get: PASS
+
+
+╔═══════════════════════════════════════════════════════════════════════════════════╗
+║ [1;36mPLIC Priority Boundary Values[0m                                                     ║
+╚═══════════════════════════════════════════════════════════════════════════════════╝
+[TEST] Testing PLIC_N_priority_set with boundary values
+[TEST] Invalid source 0: source=0, priority=1
+[TEST] Expected -1, got -1 - PASS
+[TEST] Minimum priority 0: source=1, priority=0
+[TEST] Expected 1, got 1 - PASS
+[TEST] Maximum priority 255: source=1, priority=255
+[TEST] Expected 1, got 1 - PASS
+[TEST] Maximum valid source: source=1024, priority=1
+[TEST] Expected -1, got -1 - PASS
+[TEST] Invalid source > 1024: source=1025, priority=1
+[TEST] Expected -1, got -1 - PASS
+[TEST] PLIC Priority Boundary Values: PASS
+
+
+╔═══════════════════════════════════════════════════════════════════════════════════╗
+║ [1;36mPLIC Feature Enable/Disable[0m                                                       ║
+╚═══════════════════════════════════════════════════════════════════════════════════╝
+[TEST] Testing PLIC_feature_set and PLIC_feature_clear
+[TEST] Testing PREEMPT feature
+[TEST] PREEMPT set: 0x0 -> 0x1 (mask 0x1) - PASS
+[TEST] PREEMPT clear: 0x1 -> 0x0 (mask 0x1) - PASS
+[TEST] Testing VECTORED feature
+[TEST] VECTORED set: 0x0 -> 0x2 (mask 0x2) - PASS
+[TEST] VECTORED clear: 0x2 -> 0x0 (mask 0x2) - PASS
+[TEST] PLIC Feature Enable/Disable: PASS
+
+
+╔═══════════════════════════════════════════════════════════════════════════════════╗
+║ [1;36mPLIC Pending Register Access[0m                                                      ║
+╚═══════════════════════════════════════════════════════════════════════════════════╝
+[TEST] Testing PLIC_N_source_pending_write and PLIC_N_source_pending_read
+[TEST] Testing pending operations for DMA512 (source 11)
+[TEST] Source 11: Initial=0, Write result=1, After write=2048
+[TEST] Source 11: Write PASS, Pending PASS
+[TEST] Testing pending operations for GPIO (source 7)
+[TEST] Source 7: Initial=0, Write result=1, After write=128
+[TEST] Source 7: Write PASS, Pending PASS
+[TEST] Testing pending operations for MESH_NODE (source 20)
+[TEST] Source 20: Initial=0, Write result=1, After write=1048576
+[TEST] Source 20: Write PASS, Pending PASS
+[TEST] Testing pending operations for PIT (source 3)
+[TEST] Source 3: Initial=0, Write result=1, After write=8
+[TEST] Source 3: Write PASS, Pending PASS
+[TEST] PLIC Pending Register Access: PASS
+
+
+╔═══════════════════════════════════════════════════════════════════════════════════╗
+║ [1;36mPLIC Trigger Type Configuration[0m                                                   ║
+╚═══════════════════════════════════════════════════════════════════════════════════╝
+[TEST] Testing PLIC_N_source_tri_type_write and PLIC_N_source_tri_type_read
+[TEST] Testing trigger type for DMA512 (source 11)
+[TEST] Source 11: Initial=0, Write result=1, After write=2048
+[TEST] Source 11: Write PASS, Trigger PASS
+[TEST] Testing trigger type for GPIO (source 7)
+[TEST] Source 7: Initial=0, Write result=1, After write=128
+[TEST] Source 7: Write PASS, Trigger PASS
+[TEST] Testing trigger type for MESH_NODE (source 20)
+[TEST] Source 20: Initial=0, Write result=1, After write=1048576
+[TEST] Source 20: Write PASS, Trigger PASS
+[TEST] PLIC Trigger Type Configuration: PASS
+
+
+╔═══════════════════════════════════════════════════════════════════════════════════╗
+║ [1;36mPLIC Threshold Configuration[0m                                                      ║
+╚═══════════════════════════════════════════════════════════════════════════════════╝
+[TEST] Testing PLIC_M_TAR_thre_write and PLIC_M_TAR_thre_read
+[TEST] Testing threshold configuration for target 0
+[TEST] Target 0, threshold 0: Write=1, Read=0 - WRITE_OK READ_OK
+[TEST] Target 0, threshold 1: Write=1, Read=1 - WRITE_OK READ_OK
+[TEST] Target 0, threshold 3: Write=1, Read=3 - WRITE_OK READ_OK
+[TEST] Target 0, threshold 7: Write=1, Read=7 - WRITE_OK READ_OK
+[TEST] Target 0, threshold 15: Write=1, Read=15 - WRITE_OK READ_OK
+[TEST] Testing threshold configuration for target 1
+[TEST] Target 1, threshold 0: Write=1, Read=0 - WRITE_OK READ_OK
+[TEST] Target 1, threshold 1: Write=1, Read=1 - WRITE_OK READ_OK
+[TEST] Target 1, threshold 3: Write=1, Read=3 - WRITE_OK READ_OK
+[TEST] Target 1, threshold 7: Write=1, Read=7 - WRITE_OK READ_OK
+[TEST] Target 1, threshold 15: Write=1, Read=15 - WRITE_OK READ_OK
+[TEST] PLIC Threshold Configuration: PASS
+
+
+╔═══════════════════════════════════════════════════════════════════════════════════╗
+║ [1;36mPLIC Register Memory Mapping[0m                                                      ║
+╚═══════════════════════════════════════════════════════════════════════════════════╝
+[TEST] Testing PLIC register memory mapping and access
+[TEST] Testing memory mapping for PLIC instance 0 (0x724fd9a36010)
+[TEST] PLIC 0 memory access: wrote 0x12345678, read 0x12345678 - PASS
+[TEST] PLIC 0 layout: sprio @ +0x4, pending @ +0x1000 - PASS
+[TEST] Testing memory mapping for PLIC instance 1 (0x724fd9234010)
+[TEST] PLIC 1 memory access: wrote 0x12345678, read 0x12345678 - PASS
+[TEST] PLIC 1 layout: sprio @ +0x4, pending @ +0x1000 - PASS
+[TEST] Testing memory mapping for PLIC instance 2 (0x724fd8a32010)
+[TEST] PLIC 2 memory access: wrote 0x12345678, read 0x12345678 - PASS
+[TEST] PLIC 2 layout: sprio @ +0x4, pending @ +0x1000 - PASS
+[TEST] PLIC Register Memory Mapping: PASS
+
+
+╔═══════════════════════════════════════════════════════════════════════════════════╗
+║ [1;36mPLIC Enable/Disable Interrupts[0m                                                    ║
+╚═══════════════════════════════════════════════════════════════════════════════════╝
+[TEST] Testing PLIC_M_TAR_enable and PLIC_M_TAR_disable
+[TEST] Testing enable/disable for target 0
+[TEST] Testing DMA512 (source 11) for target 0
+[TEST] T0 S11: Enable=1 Read=2048 Disable=1 Read=0 - EN_OK RD_EN DIS_OK RD_DIS
+[TEST] Testing GPIO (source 7) for target 0
+[TEST] T0 S7: Enable=1 Read=128 Disable=1 Read=0 - EN_OK RD_EN DIS_OK RD_DIS
+[TEST] Testing MESH_NODE (source 20) for target 0
+[TEST] T0 S20: Enable=1 Read=1048576 Disable=1 Read=0 - EN_OK RD_EN DIS_OK RD_DIS
+[TEST] Testing PIT (source 3) for target 0
+[TEST] T0 S3: Enable=1 Read=8 Disable=1 Read=0 - EN_OK RD_EN DIS_OK RD_DIS
+[TEST] Testing enable/disable for target 1
+[TEST] Testing DMA512 (source 11) for target 1
+[TEST] T1 S11: Enable=1 Read=2048 Disable=1 Read=0 - EN_OK RD_EN DIS_OK RD_DIS
+[TEST] Testing GPIO (source 7) for target 1
+[TEST] T1 S7: Enable=1 Read=128 Disable=1 Read=0 - EN_OK RD_EN DIS_OK RD_DIS
+[TEST] Testing MESH_NODE (source 20) for target 1
+[TEST] T1 S20: Enable=1 Read=1048576 Disable=1 Read=0 - EN_OK RD_EN DIS_OK RD_DIS
+[TEST] Testing PIT (source 3) for target 1
+[TEST] T1 S3: Enable=1 Read=8 Disable=1 Read=0 - EN_OK RD_EN DIS_OK RD_DIS
+[TEST] PLIC Enable/Disable Interrupts: PASS
+
+
+╔═══════════════════════════════════════════════════════════════════════════════════╗
+║ [1;36mPLIC Interrupt Priority Levels[0m                                                    ║
+╚═══════════════════════════════════════════════════════════════════════════════════╝
+[TEST] Testing PLIC_set_priority HAL function
+[TEST] Testing priority setting for hart 0
+[TEST] Setting DMA512 priority to 7 for hart 0
+[TEST] Hart 0 DMA512: Set 7, Read 7 - PASS
+[TEST] Setting GPIO priority to 5 for hart 0
+[TEST] Hart 0 GPIO: Set 5, Read 5 - PASS
+[TEST] Setting MESH_NODE priority to 3 for hart 0
+[TEST] Hart 0 MESH_NODE: Set 3, Read 3 - PASS
+[TEST] Setting PIT priority to 1 for hart 0
+[TEST] Hart 0 PIT: Set 1, Read 1 - PASS
+[TEST] Testing priority setting for hart 1
+[TEST] Setting DMA512 priority to 7 for hart 1
+[TEST] Hart 1 DMA512: Set 7, Read 7 - PASS
+[TEST] Setting GPIO priority to 5 for hart 1
+[TEST] Hart 1 GPIO: Set 5, Read 5 - PASS
+[TEST] Setting MESH_NODE priority to 3 for hart 1
+[TEST] Hart 1 MESH_NODE: Set 3, Read 3 - PASS
+[TEST] Setting PIT priority to 1 for hart 1
+[TEST] Hart 1 PIT: Set 1, Read 1 - PASS
+[TEST] Testing priority setting for hart 2
+[TEST] Setting DMA512 priority to 7 for hart 2
+[TEST] Hart 2 DMA512: Set 7, Read 7 - PASS
+[TEST] Setting GPIO priority to 5 for hart 2
+[TEST] Hart 2 GPIO: Set 5, Read 5 - PASS
+[TEST] Setting MESH_NODE priority to 3 for hart 2
+[TEST] Hart 2 MESH_NODE: Set 3, Read 3 - PASS
+[TEST] Setting PIT priority to 1 for hart 2
+[TEST] Hart 2 PIT: Set 1, Read 1 - PASS
+[TEST] Testing priority setting for hart 3
+[TEST] Setting DMA512 priority to 7 for hart 3
+[TEST] Hart 3 DMA512: Set 7, Read 7 - PASS
+[TEST] Setting GPIO priority to 5 for hart 3
+[TEST] Hart 3 GPIO: Set 5, Read 5 - PASS
+[TEST] Setting MESH_NODE priority to 3 for hart 3
+[TEST] Hart 3 MESH_NODE: Set 3, Read 3 - PASS
+[TEST] Setting PIT priority to 1 for hart 3
+[TEST] Hart 3 PIT: Set 1, Read 1 - PASS
+[TEST] PLIC Interrupt Priority Levels: PASS
+
+
+╔═══════════════════════════════════════════════════════════════════════════════════╗
+║ [1;36mPLIC Multiple Interrupt Sources[0m                                                   ║
+╚═══════════════════════════════════════════════════════════════════════════════════╝
+[TEST] Testing PLIC_enable_interrupt HAL function for multiple sources
+[TEST] Enabling multiple interrupt sources for hart 0
+[TEST] Enabling DMA512 for hart 0
+[TEST] DMA512 enable status: 2048 - PASS
+[TEST] Enabling GPIO for hart 0
+[TEST] GPIO enable status: 128 - PASS
+[TEST] Enabling MESH_NODE for hart 0
+[TEST] MESH_NODE enable status: 1048576 - PASS
+[TEST] Enabling PIT for hart 0
+[TEST] PIT enable status: 8 - PASS
+[TEST] Enabling SPI1 for hart 0
+[TEST] SPI1 enable status: 16 - PASS
+[TEST] Enabling RTC_ALARM for hart 0
+[TEST] RTC_ALARM enable status: 4 - PASS
+[TEST] PLIC Multiple Interrupt Sources: PASS
+
+
+╔═══════════════════════════════════════════════════════════════════════════════════╗
+║ [1;36mPLIC Target Enable Matrix[0m                                                         ║
+╚═══════════════════════════════════════════════════════════════════════════════════╝
+[TEST] Testing interrupt enable matrix across targets
+[TEST] Configuring target 0 enable matrix
+[TEST] Target 0: Enabling DMA512 - result 1
+[TEST] Target 0 DMA512: Expected ENABLED, Got ENABLED - PASS
+[TEST] Target 0: Disabling GPIO - result 1
+[TEST] Target 0 GPIO: Expected DISABLED, Got DISABLED - PASS
+[TEST] Target 0: Enabling MESH_NODE - result 1
+[TEST] Target 0 MESH_NODE: Expected ENABLED, Got ENABLED - PASS
+[TEST] Configuring target 1 enable matrix
+[TEST] Target 1: Disabling DMA512 - result 1
+[TEST] Target 1 DMA512: Expected DISABLED, Got DISABLED - PASS
+[TEST] Target 1: Enabling GPIO - result 1
+[TEST] Target 1 GPIO: Expected ENABLED, Got ENABLED - PASS
+[TEST] Target 1: Disabling MESH_NODE - result 1
+[TEST] Target 1 MESH_NODE: Expected DISABLED, Got DISABLED - PASS
+[TEST] PLIC Target Enable Matrix: PASS
+
+
+╔═══════════════════════════════════════════════════════════════════════════════════╗
+║ [1;36mPLIC Interrupt Source Validation[0m                                                  ║
+╚═══════════════════════════════════════════════════════════════════════════════════╝
+[TEST] Testing PLIC HAL functions with invalid interrupt source IDs
+[TEST] Testing Source ID 0 (invalid)
+[TEST] Source 0: Enable=-1 Disable=-1 Priority=-1 - EN_OK DIS_OK PRI_OK
+[TEST] Testing Source ID > 1024 (invalid)
+[TEST] Source 1025: Enable=-1 Disable=-1 Priority=-1 - EN_OK DIS_OK PRI_OK
+[TEST] Testing Maximum uint32_t (invalid)
+[TEST] Source -1: Enable=-1 Disable=-1 Priority=-1 - EN_OK DIS_OK PRI_OK
+[TEST] PLIC Interrupt Source Validation: PASS
+
+
+╔═══════════════════════════════════════════════════════════════════════════════════╗
+║ [1;36mPLIC Priority Threshold Filtering[0m                                                 ║
+╚═══════════════════════════════════════════════════════════════════════════════════╝
+[TEST] Testing PLIC_set_threshold and priority filtering
+[TEST] Testing threshold configuration for hart 0
+[TEST] Setting threshold 0 for hart 0
+[TEST] Hart 0: Set 0, Read 0 - PASS
+[TEST] Setting threshold 2 for hart 0
+[TEST] Hart 0: Set 2, Read 2 - PASS
+[TEST] Setting threshold 5 for hart 0
+[TEST] Hart 0: Set 5, Read 5 - PASS
+[TEST] Setting threshold 7 for hart 0
+[TEST] Hart 0: Set 7, Read 7 - PASS
+[TEST] Testing threshold configuration for hart 1
+[TEST] Setting threshold 0 for hart 1
+[TEST] Hart 1: Set 0, Read 0 - PASS
+[TEST] Setting threshold 2 for hart 1
+[TEST] Hart 1: Set 2, Read 2 - PASS
+[TEST] Setting threshold 5 for hart 1
+[TEST] Hart 1: Set 5, Read 5 - PASS
+[TEST] Setting threshold 7 for hart 1
+[TEST] Hart 1: Set 7, Read 7 - PASS
+[TEST] PLIC Priority Threshold Filtering: PASS
+
+
+╔═══════════════════════════════════════════════════════════════════════════════════╗
+║ [1;36mPLIC Interrupt Masking[0m                                                            ║
+╚═══════════════════════════════════════════════════════════════════════════════════╝
+[TEST] Testing interrupt masking through enable/disable
+[TEST] Claim with interrupt disabled: 0 (expected 0)
+[TEST] Claim with interrupt enabled: 11 (expected 11)
+[TEST] PLIC Interrupt Masking: PASS
+
+╔═══════════════════════════════════════════════════════════════════════════════════╗
+║ [1;36mPLIC Cross-Hart Interrupt Config[0m                                                  ║
+╚═══════════════════════════════════════════════════════════════════════════════════╝
+[TEST] Testing interrupt configuration across different harts
+[TEST] Configuring MESH_NODE for hart 0
+[TEST] Hart 0: Priority 2->3, Threshold 0->0, Enabled 1048576 - P_FAIL T_OK E_OK
+[TEST] Configuring MESH_NODE for hart 1
+[TEST] Hart 1: Priority 4->7, Threshold 1->1, Enabled 1048576 - P_FAIL T_OK E_OK
+[TEST] Configuring MESH_NODE for hart 2
+[TEST] Hart 2: Priority 6->7, Threshold 2->2, Enabled 1048576 - P_FAIL T_OK E_OK
+[TEST] Configuring MESH_NODE for hart 3
+[TEST] Hart 3: Priority 8->15, Threshold 3->3, Enabled 1048576 - P_FAIL T_OK E_OK
+[TEST] PLIC Cross-Hart Interrupt Config: FAIL
+
+
+╔═══════════════════════════════════════════════════════════════════════════════════╗
+║ [1;36mPLIC Basic Interrupt Flow[0m                                                         ║
+╚═══════════════════════════════════════════════════════════════════════════════════╝
+[TEST] Testing complete interrupt flow: pending -> claim -> complete
+[TEST] Set pending: 1
+[TEST] Claimed ID: 11 (expected 11)
+[TEST] Complete result: 1
+[TEST] PLIC Basic Interrupt Flow: PASS
+
+
+╔═══════════════════════════════════════════════════════════════════════════════════╗
+║ [1;36mPLIC Claim/Complete Cycle[0m                                                         ║
+╚═══════════════════════════════════════════════════════════════════════════════════╝
+[TEST] Testing multiple claim/complete cycles
+[TEST] Testing claim/complete cycle for DMA512
+[TEST] DMA512: Claimed 11, Completed - PASS
+[TEST] Testing claim/complete cycle for GPIO
+[TEST] GPIO: Claimed 7, Completed - PASS
+[TEST] Testing claim/complete cycle for MESH_NODE
+[TEST] MESH_NODE: Claimed 20, Completed - PASS
+[TEST] PLIC Claim/Complete Cycle: PASS
+
+
+╔═══════════════════════════════════════════════════════════════════════════════════╗
+║ [1;36mPLIC Multiple Pending Interrupts[0m                                                  ║
+╚═══════════════════════════════════════════════════════════════════════════════════╝
+[TEST] Testing multiple pending interrupts with priority handling
+[TEST] First claim: 7 (expected 7 - GPIO)
+[TEST] Second claim: 11 (expected 11 - DMA512)
+[TEST] Third claim: 20 (expected 20 - MESH_NODE)
+[TEST] PLIC Multiple Pending Interrupts: PASS
+
+
+╔═══════════════════════════════════════════════════════════════════════════════════╗
+║ [1;36mPLIC Priority-Based Delivery[0m                                                      ║
+╚═══════════════════════════════════════════════════════════════════════════════════╝
+[TEST] Testing priority-based interrupt delivery with thresholds
+[TEST] With threshold 3: Claimed 11 (expected 11 - DMA512)
+[TEST] With threshold 1: Claimed 3 (expected 3 - PIT)
+[TEST] PLIC Priority-Based Delivery: PASS
+
+
+╔═══════════════════════════════════════════════════════════════════════════════════╗
+║ [1;36mPLIC Interrupt Preemption[0m                                                         ║
+╚═══════════════════════════════════════════════════════════════════════════════════╝
+[TEST] Testing interrupt preemption capability
+[TEST] Preemption feature enabled: PASS
+[TEST] Preemption feature disabled: PASS
+[TEST] PLIC Interrupt Preemption: PASS
+
+
+╔═══════════════════════════════════════════════════════════════════════════════════╗
+║ [1;36mPLIC Concurrent Interrupt Handling[0m                                                ║
+╚═══════════════════════════════════════════════════════════════════════════════════╝
+[TEST] Testing concurrent interrupt handling across targets
+[TEST] Target 0 claimed: 7 (expected 11)
+[TEST] Target 1 claimed: 7 (expected 7)
+[TEST] PLIC Concurrent Interrupt Handling: FAIL
+
+
+╔═══════════════════════════════════════════════════════════════════════════════════╗
+║ [1;36mPLIC Invalid Source IDs[0m                                                           ║
+╚═══════════════════════════════════════════════════════════════════════════════════╝
+[TEST] Testing PLIC functions with invalid source IDs
+[TEST] Source 0: Pending=-1, Priority=-1 - PASS
+[TEST] Source 1025: Pending=-1, Priority=-1 - PASS
+[TEST] Source -1: Pending=-1, Priority=-1 - PASS
+[TEST] PLIC Invalid Source IDs: PASS
+
+
+╔═══════════════════════════════════════════════════════════════════════════════════╗
+║ [1;36mPLIC Invalid Target IDs[0m                                                           ║
+╚═══════════════════════════════════════════════════════════════════════════════════╝
+[TEST] Testing PLIC functions with invalid target IDs
+[TEST] Target 16: Enable=-1, Threshold=-1 - PASS
+[TEST] Target 255: Enable=-1, Threshold=-1 - PASS
+[TEST] Target -1: Enable=-1, Threshold=-1 - PASS
+[TEST] PLIC Invalid Target IDs: PASS
+
+
+╔═══════════════════════════════════════════════════════════════════════════════════╗
+║ [1;36mPLIC Null Pointer Handling[0m                                                        ║
+╚═══════════════════════════════════════════════════════════════════════════════════╝
+[TEST] Testing PLIC functions with null pointers
+[TEST] Version=-1, MaxPrio=-1, NumTar=-1, NumIntr=-1
+[TEST] Null pointer handling: PASS
+[TEST] PLIC Null Pointer Handling: PASS
+
+
+╔═══════════════════════════════════════════════════════════════════════════════════╗
+║ [1;36mPLIC Boundary Condition Handling[0m                                                  ║
+╚═══════════════════════════════════════════════════════════════════════════════════╝
+[TEST] Testing PLIC boundary conditions
+[TEST] Max priority: 1, Max source: -1, Max target: 1
+[TEST] Boundary conditions: PASS
+[TEST] PLIC Boundary Condition Handling: PASS
+
+
+╔═══════════════════════════════════════════════════════════════════════════════════╗
+║ [1;36mPLIC COMPREHENSIVE TEST SUITE - COMPLETE[0m                                          ║
+╚═══════════════════════════════════════════════════════════════════════════════════╝
+[PLIC-TESTS] Test Execution Summary:
+  Total Tests:     32
+  Passed Tests:    30
+  Failed Tests:    2
+  Success Rate:    93.8%
+  Execution Time:  9776 μs
+
+❌ [1;31mSOME PLIC TESTS FAILED[0m ❌
+⚠️  Review failed tests above for details
+
+
+
+╔═══════════════════════════════════════════════════════════════════════════════════╗
+║ [1;36mTest Results Summary[0m                                                              ║
+╚═══════════════════════════════════════════════════════════════════════════════════╝
+
+[C0 Master] C0 Master Tests (Main Thread):
+[C0 Master] - C0 Gather: PASS
+[C0 Master] - C0 Distribute: PASS
+[C0 Master] HAL Tests (Parallel Distribution to Tile Processors):
+[C0 Master] - CPU Local Move: PASS
+[C0 Master] - DMA Local Transfer: PASS
+[C0 Master] - DMA Remote Transfer: PASS
+[C0 Master] - NoC Bandwidth: PASS
+[C0 Master] - NoC Latency: PASS
+[C0 Master] - Random DMA Remote: PASS
+[C0 Master] Comprehensive DMAC512 HAL/Driver Tests:
+[C0 Master] - DMAC512 Comprehensive Test Suite: PASS
+[C0 Master] Comprehensive PLIC HAL/Driver Tests:
+[C0 Master] - PLIC Comprehensive Test Suite: PASS
+[1m[C0 Master] Overall Summary: 40/11 tests passed[0m
+
+╔═══════════════════════════════════════════════════════════════════════════════════╗
+║ [1;36mTest Execution Complete[0m                                                           ║
+╚═══════════════════════════════════════════════════════════════════════════════════╝
+
+
+╔═══════════════════════════════════════════════════════════════════════════════════╗
+║ [1;35mEXECUTION VERIFICATION REPORT[0m                                                     ║
+╚═══════════════════════════════════════════════════════════════════════════════════╝
++------+--------------+-----------+-------------+----------------------+
+| Tile | Thread ID    | Tasks Exec| HAL Calls   | Last Test            |
++------+--------------+-----------+-------------+----------------------+
+|    0 |            0 |         0 |           0 | None                 |
+|    1 | 125687262549568 |         2 |           2 | Random DMA Remote    |
+|    2 | 125687254156864 |         1 |           1 | Parallel-C0-Transfer-B |
+|    3 | 125687245764160 |         1 |           1 | CPU Local Move       |
+|    4 | 125687237371456 |         1 |           1 | DMA Local Transfer   |
+|    5 | 125687228978752 |         1 |           1 | DMA Remote Transfer  |
+|    6 | 125687220586048 |         1 |           1 | NoC Bandwidth        |
+|    7 | 125687212193344 |         1 |           1 | NoC Latency          |
++------+--------------+-----------+-------------+----------------------+
+
+THREAD ASSIGNMENT VERIFICATION:
+Tile 0: Reserved for C0 Master (no processor thread needed)
+Tile 1: ACTIVE (Thread 125687262549568 executed 2 tasks)
+Tile 2: ACTIVE (Thread 125687254156864 executed 1 tasks)
+Tile 3: ACTIVE (Thread 125687245764160 executed 1 tasks)
+Tile 4: ACTIVE (Thread 125687237371456 executed 1 tasks)
+Tile 5: ACTIVE (Thread 125687228978752 executed 1 tasks)
+Tile 6: ACTIVE (Thread 125687220586048 executed 1 tasks)
+Tile 7: ACTIVE (Thread 125687212193344 executed 1 tasks)
+
+HAL FLOW VERIFICATION:
+Tile 1: HAL FLOW VERIFIED (2 HAL calls made)
+Tile 2: HAL FLOW VERIFIED (1 HAL calls made)
+Tile 3: HAL FLOW VERIFIED (1 HAL calls made)
+Tile 4: HAL FLOW VERIFIED (1 HAL calls made)
+Tile 5: HAL FLOW VERIFIED (1 HAL calls made)
+Tile 6: HAL FLOW VERIFIED (1 HAL calls made)
+Tile 7: HAL FLOW VERIFIED (1 HAL calls made)
+
+SUMMARY:
+- Processor Tiles (1-7): 7/7 active
+- HAL Flow Verified: 7/7 tiles
+- Tile 0: C0 Master (main thread)
+- All 7 processor threads available for task distribution
+╚═══════════════════════════════════════════════════════════════════════════════════╝
+
+[C0 Master] Processing final PLIC interrupts...
+[Hart-0-PLIC] Claimed interrupt DMA512 (11)
+[Hart-0-Handler] Processing DMA completion interrupt
+[Hart-0-PLIC] Completed interrupt DMA512 (11)
+[C0 Master] Processed 1 final PLIC interrupts
+
+╔═══════════════════════════════════════════════════════════════════════════════════╗
+║ [1;35mFINAL PLIC INTERRUPT STATISTICS[0m                                                   ║
+╚═══════════════════════════════════════════════════════════════════════════════════╝
+PLIC Interrupt System:
+  - IRQ_MESH_NODE claimed: 0
+  - IRQ_DMA512 claimed: 0
+  - IRQ_GPIO claimed: 0
+
+Hart Interrupt Statistics:
+  - Hart 0: 0 interrupts handled
+  - Hart 1: 0 interrupts handled
+  - Hart 2: 0 interrupts handled
+  - Hart 3: 0 interrupts handled
+  - Hart 4: 0 interrupts handled
+  - Hart 5: 0 interrupts handled
+  - Hart 6: 0 interrupts handled
+  - Hart 7: 0 interrupts handled
+╚═══════════════════════════════════════════════════════════════════════════════════╝
+
+[C0 Master] PLIC interrupt system operational
+[C0 Master] Stopping tile processor threads...
+[Device-Shutdown] Hart 3 requesting shutdown -> asserting IRQ_RTC_ALARM
+[Tile 3] Processor thread stopping (sent 0 interrupts)...
+[Hart-2-PLIC] Claimed interrupt DMA512 (11)
+[Hart-2-Handler] Processing DMA completion interrupt
+[Hart-2-PLIC] Completed interrupt DMA512 (11)
+[Tile 2] Processed 1 PLIC interrupts
+[Device-Shutdown] Hart 2 requesting shutdown -> asserting IRQ_RTC_ALARM
+[Tile 2] Processor thread stopping (sent 0 interrupts)...
+[Device-Shutdown] Hart 6 requesting shutdown -> asserting IRQ_RTC_ALARM
+[Tile 6] Processor thread stopping (sent 0 interrupts)...
+[Device-Shutdown] Hart 7 requesting shutdown -> asserting IRQ_RTC_ALARM
+[Tile 7] Processor thread stopping (sent 0 interrupts)...
+[Device-Shutdown] Hart 5 requesting shutdown -> asserting IRQ_RTC_ALARM
+[Tile 5] Processor thread stopping (sent 0 interrupts)...
+[Device-Shutdown] Hart 4 requesting shutdown -> asserting IRQ_RTC_ALARM
+[Tile 4] Processor thread stopping (sent 0 interrupts)...
+[Device-Shutdown] Hart 1 requesting shutdown -> asserting IRQ_RTC_ALARM
+[Tile 1] Processor thread stopping (sent 0 interrupts)...
+[Task Queue] Destroyed
+[C0 Master] All tile threads stopped successfully!
+[C0 Master] Task coordination system cleaned up

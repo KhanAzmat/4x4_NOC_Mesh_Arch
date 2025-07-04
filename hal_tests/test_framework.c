@@ -6,6 +6,7 @@
 #include "stress_tests.h"
 #include "random_dma_tests.h"
 #include "dmac512_comprehensive_tests.h"
+#include "plic_comprehensive_tests.h"
 
 void run_all_tests(mesh_platform_t* platform)
 {
@@ -27,6 +28,13 @@ void run_all_tests(mesh_platform_t* platform)
     printf("\033[1;36m═══════════════════════════════════════════════════════════════════════════════════\033[0m\n");
     
     total++; passed += run_dmac512_comprehensive_tests(platform);
+    
+    // Comprehensive PLIC HAL/Driver tests
+    printf("\n\033[1;35m═══════════════════════════════════════════════════════════════════════════════════\033[0m\n");
+    printf("\033[1;35m                     PLIC COMPREHENSIVE HAL/DRIVER TESTS                          \033[0m\n");
+    printf("\033[1;35m═══════════════════════════════════════════════════════════════════════════════════\033[0m\n");
+    
+    total++; passed += run_plic_comprehensive_tests(platform);
     
     printf("\n\033[1m=== OVERALL TEST SUMMARY ===\033[0m\n");
     printf("\033[1mSummary: %d/%d tests passed\033[0m\n", passed, total);

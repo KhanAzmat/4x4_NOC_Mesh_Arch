@@ -923,6 +923,13 @@ void c0_run_hal_tests_distributed(mesh_platform_t* platform)
     extern int run_dmac512_comprehensive_tests(mesh_platform_t* platform);
     int dmac512_comprehensive_result = run_dmac512_comprehensive_tests(platform);
     
+    // STEP 4: Run comprehensive PLIC HAL/Driver tests on main thread
+    main_thread_print("\n");
+    print_section_banner("PLIC COMPREHENSIVE HAL/DRIVER TESTS");
+    
+    extern int run_plic_comprehensive_tests(mesh_platform_t* platform);
+    int plic_comprehensive_result = run_plic_comprehensive_tests(platform);
+    
     // Print results
     main_thread_print("\n");
     print_section_banner("Test Results Summary");
@@ -940,8 +947,11 @@ void c0_run_hal_tests_distributed(mesh_platform_t* platform)
     main_thread_print("[C0 Master] Comprehensive DMAC512 HAL/Driver Tests:\n");
     main_thread_print("[C0 Master] - DMAC512 Comprehensive Test Suite: %s\n", dmac512_comprehensive_result ? "PASS" : "FAIL");
     
-    int total_passed = c0_gather_result + c0_distribute_result + parallel_c0_result + hal_passed + dmac512_comprehensive_result;
-    int total_tests = 3 + num_hal_tests + 1;  // +1 for comprehensive DMAC512 tests
+    main_thread_print("[C0 Master] Comprehensive PLIC HAL/Driver Tests:\n");
+    main_thread_print("[C0 Master] - PLIC Comprehensive Test Suite: %s\n", plic_comprehensive_result ? "PASS" : "FAIL");
+    
+    int total_passed = c0_gather_result + c0_distribute_result + parallel_c0_result + hal_passed + dmac512_comprehensive_result + plic_comprehensive_result;
+    int total_tests = 3 + num_hal_tests + 2;  // +2 for comprehensive DMAC512 and PLIC tests
     main_thread_print("\033[1m[C0 Master] Overall Summary: %d/%d tests passed\033[0m\n", total_passed, total_tests);
     print_section_banner("Test Execution Complete");
     
